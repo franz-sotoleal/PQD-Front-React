@@ -10,21 +10,6 @@ export async function httpPut(url, body, jwt, params) {
     return httpRequest("PUT", url, body, jwt, params);
 }
 
-class RequestError extends Error {
-    method
-    url
-    statusCode
-
-    constructor(method, url, statusCode) {
-        const message = `Request ${method} ${url} failed with status code ${statusCode}`;
-        super(message);
-        this.name = "RequestError";
-        this.method = method;
-        this.url = url;
-        this.statusCode = statusCode;
-    }
-}
-
 const serialize = (obj) => {
     const str = [];
     for (const p in obj) {
@@ -64,11 +49,6 @@ export async function httpRequest(
         headers: headersJson,
         body: body ? JSON.stringify(body) : undefined,
         ...params,
-    }).then((res) => {
-        if (!res.ok) {
-            throw new RequestError(method, url, res.status);
-        }
-        return res;
-    });
+    }).then(res => res);
 }
 
