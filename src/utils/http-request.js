@@ -14,7 +14,6 @@ const serialize = (obj) => {
     const str = [];
     for (const p in obj) {
         if (obj.hasOwnProperty(p)) {
-            // @ts-ignore
             str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
         }
     }
@@ -29,21 +28,24 @@ export async function httpRequest(
     {
         headers = {},
         requestParams,
-        ...params} = {}) {
-    let headersJson = {
+        ...params
+    } = {}) {
+    console.log("HTTP REQUEST meetod")
+    let headersJson = new Headers({
         "Content-Type": "application/json",
         "X-Requested-With": "XMLHttpRequest",
         ...headers,
-    }
+    })
 
     if (jwt) {
-        headersJson["Authorization"] = "Bearer " + jwt;
+        headersJson.append("Authorization", "Bearer " + jwt)
     }
 
     if (requestParams) {
         const urlParams = serialize(requestParams);
         url += "?" + urlParams;
     }
+
     return fetch(url, {
         method,
         headers: headersJson,
