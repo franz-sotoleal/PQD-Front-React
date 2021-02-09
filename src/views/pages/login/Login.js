@@ -51,7 +51,7 @@ const Login = () => {
                                 <CCardBody className="text-center">
                                     <CForm>
                                         <h1>Login</h1>
-                                        <p className="text-muted">Sign In to your account</p>
+                                        <p className="text-muted">Sign In to your PQD account</p>
                                         {loginFailed
                                          ? <CAlert color="danger">
                                              Login failed!

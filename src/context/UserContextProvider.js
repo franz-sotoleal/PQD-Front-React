@@ -30,7 +30,11 @@ export const UserContextProvider = ({children}) => {
 
     const setUserInfo = (userInfo) => {
         setUser(userInfo);
-        localStorage.setItem("user", JSON.stringify(userInfo));
+        if (userInfo) {
+            localStorage.setItem("user", JSON.stringify(userInfo));
+        } else {
+            localStorage.removeItem("user");
+        }
     }
 
     return (
