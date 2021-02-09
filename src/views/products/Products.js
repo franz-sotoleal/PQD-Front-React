@@ -1,10 +1,10 @@
-import {CCard, CCardBody, CCardHeader, CDataTable} from "@coreui/react";
+import {CAlert, CCard, CCardBody, CCardHeader, CDataTable} from "@coreui/react";
 import React, {useEffect, useState} from 'react'
-import {httpGet} from "../../utils/http-request";
-import config from "../../config/config.json";
 import {useUserContext} from "../../context/UserContextProvider";
 import {useHistory} from "react-router-dom";
 import {useProductContext} from "../../context/ProductContextProvider";
+import {getProducts} from "../../utils/product-service";
+import {Loader} from "../common/Loader";
 
 const fields = ['id', 'name', 'currentQuality']
 
@@ -23,86 +23,52 @@ const getBadge = status => {
     }
 }
 
+const ComponentStates = {
+    Loading: "loading",
+    Error: "error",
+    Displaying: "displaying",
+    NoProducts: "no_products"
+}
+
 const Products = () => {
 
     const {user} = useUserContext();
     const {products, setProducts} = useProductContext();
-    const [loading, setLoading] = useState(true);
-    const [loadingFailed, setLoadingFailed] = useState(true);
-    const [productDisplayData, setProductDisplayData] = useState(undefined);
+    const [componentState, setComponentState] = useState(ComponentStates.Loading);
 
     const history = useHistory();
 
     useEffect(() => {
-
-        getProducts()
-            .then(products => {
-                const productWithReleaseInfoList = [];
-                products.map(async (product, idx) => {
-                    const productWithReleaseInfo = product;
-                    await getReleaseInfo(product.id)
-                        .then(releaseInfo => {
-                            productWithReleaseInfo.id = idx;
-                            productWithReleaseInfo.releaseInfo = releaseInfo;
-                            productWithReleaseInfoList.push(productWithReleaseInfo);
-                        })
-                    setProductDisplayData(productWithReleaseInfoList); // TODO oota ära kuni kõik on välja küsitud
-                    setLoading(false);
+        const jwt = user?.jwt
+        if (jwt) {
+            setComponentState(ComponentStates.Loading)
+            getProducts(jwt)
+                .then((products) => {
+                    if (products.length > 0) {
+                        setProducts(products);
+                        setComponentState(ComponentStates.Displaying);
+                    } else {
+                        setComponentState(ComponentStates.NoProducts);
+                    }
                 })
-                return productWithReleaseInfoList;
-            })
+                .catch(() => {
+                    setComponentState(ComponentStates.Error)
+                })
+        } else {
+            setComponentState(ComponentStates.Error)
+        }
     }, []);
-
-    const getProducts = () => {
-        setLoading(true)
-        setLoadingFailed(false);
-        return httpGet(`${config.pqdApiBaseUrl}/product/get/all`, user?.jwt)
-            .then(res => {
-                if (res.status === 200) {
-                    return {status: "OK", body: res.json()};
-                } else {
-                    return {status: "Error", body: res.json()};
-                }
-            })
-            .then(data => {
-                if (data.status === "OK") {
-                    return data.body;
-                } else {
-                    setLoadingFailed(true);
-                }
-            })
-    }
-
-    const getReleaseInfo = async (productId) => {
-        return httpGet(`${config.pqdApiBaseUrl}/product/${productId}/releaseInfo`, user?.jwt)
-            .then(res => {
-                if (res.status === 200) {
-                    return {status: "OK", body: res.json()};
-                } else {
-                    return {status: "Error", body: res.json()};
-                }
-            })
-            .then(data => {
-                if (data.status === "OK") {
-                    return data.body;
-                } else {
-                    setLoadingFailed(true);
-                }
-            })
-    }
 
     const renderLoader = () => {
         return <CCardBody align="center">
-            <div className="spinner-border text-primary" role="status">
-                <span className="sr-only">Loading...</span>
-            </div>
-        </CCardBody>
+            <Loader/>
+        </CCardBody>;
     };
 
     const renderTable = () => {
-        console.log(productDisplayData);
+        console.log(products);
         return <CDataTable
-            items={productDisplayData}
+            items={products}
             fields={fields}
             bordered
             itemsPerPage={5}
@@ -120,8 +86,33 @@ const Products = () => {
                     }
             }}
         />
-
     };
+
+    const renderError = () => {
+        return <CAlert color="danger">
+            Loading products failed
+        </CAlert>
+    }
+
+    const renderNoProductsNotice = () => {
+        return <CAlert color="primary">
+            You have no products. Please add a product // Todo add product button
+        </CAlert>
+    }
+
+    const renderBody = () => {
+        switch (componentState) {
+            case ComponentStates.Loading:
+                return renderLoader();
+            case ComponentStates.Error:
+                return renderError();
+            case ComponentStates.Displaying:
+                return renderTable();
+            case ComponentStates.NoProducts: // fall-through
+            default:
+                return renderNoProductsNotice();
+        }
+    }
 
     const renderProducts = () => {
         return (
@@ -131,7 +122,7 @@ const Products = () => {
                         Products
                     </CCardHeader>
                     <CCardBody>
-                        {loading ? renderLoader() : renderTable()}
+                        {renderBody()}
                     </CCardBody>
                 </CCard>
             </>
