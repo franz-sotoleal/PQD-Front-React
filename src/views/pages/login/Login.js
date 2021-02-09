@@ -14,14 +14,15 @@ const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loginFailed, setLoginFailed] = useState(false);
-    const {user, setUser} = useUserContext();
+    const {getUserInfo, setUserInfo} = useUserContext();
     const history = useHistory();
 
     useEffect(() => {
-        if (user && user.jwt) {
-            history.push("/dashboard")
+        const userInfo = getUserInfo();
+        if (userInfo && userInfo.jwt) {
+            history.push("/products")
         }
-    }, [user]);
+    }, [getUserInfo]);
 
     const performLogin = () => {
         setLoginFailed(false);
@@ -32,11 +33,11 @@ const Login = () => {
             .then(res => res.json())
             .then(data => {
                 console.log(data);
-                setUser(data);
+                setUserInfo(data);
             })
             .catch(() => {
                 setLoginFailed(true);
-                setUser(undefined);
+                setUserInfo(undefined);
             });
     }
 

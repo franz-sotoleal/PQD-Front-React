@@ -5,11 +5,12 @@ import {useHistory} from "react-router-dom";
 
 const TheLayout = () => {
 
-    const {user} = useUserContext();
+    const {getUserInfo} = useUserContext();
     const history = useHistory();
 
     useEffect(() => {
-        if (!user) {
+        const userInfo = getUserInfo();
+        if (!userInfo || !userInfo.jwt) {
             history.push("/login")
         }
     }, [])

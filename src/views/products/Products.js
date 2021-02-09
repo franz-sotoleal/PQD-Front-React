@@ -32,14 +32,14 @@ const ComponentStates = {
 
 const Products = () => {
 
-    const {user} = useUserContext();
+    const {getUserInfo} = useUserContext();
     const {products, setProducts} = useProductContext();
     const [componentState, setComponentState] = useState(ComponentStates.Loading);
 
     const history = useHistory();
 
     useEffect(() => {
-        const jwt = user?.jwt
+        const jwt = getUserInfo()?.jwt;
         if (jwt) {
             setComponentState(ComponentStates.Loading)
             getProducts(jwt)
