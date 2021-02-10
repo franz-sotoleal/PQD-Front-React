@@ -7,17 +7,17 @@ import {
     cibInstagram, cibLinkedin, cibPaypal, cibPinterest, cibReddit, cibSkype, cibStackoverflow, cibStripe, cibTumblr,
     cibTwitter, cibVimeo, cibVk, cibXing, cibYahoo, cibYoutube, cifBr, cifEs, cifFr, cifIn, cifPl, cifUs,
     cilAccountLogout, cilAlignCenter, cilAlignLeft, cilAlignRight, cilApplicationsSettings, cilArrowRight, cilArrowTop,
-    cilAsterisk, cilBan, cilBasket, cilBell, cilBold, cilBookmark, cilCalculator, cilCalendar, cilChartPie, cilCheck,
-    cilCheckCircle, cilChevronBottom, cilChevronLeft, cilChevronRight, cilChevronTop, cilCircle, cilCloudDownload,
-    cilCode, cilCommentSquare, cilCreditCard, cilCursor, cilCursorMove, cilDollar, cilDrop, cilEnvelopeClosed,
-    cilEnvelopeLetter, cilEnvelopeOpen, cilEuro, cilFile, cilFullscreen, cilFullscreenExit, cilGlobeAlt, cilGraph,
-    cilGrid, cilHome, cilInbox, cilIndentDecrease, cilIndentIncrease, cilInputPower, cilItalic, cilJustifyCenter,
-    cilJustifyLeft, cilLaptop, cilLayers, cilLibrary, cilLibraryAdd, cilLightbulb, cilList, cilListNumbered,
-    cilListRich, cilLocationPin, cilLockLocked, cilMagnifyingGlass, cilMap, cilMoon, cilNotes, cilOptions, cilPaperclip,
-    cilPaperPlane, cilPencil, cilPeople, cilPhone, cilPlus, cilPrint, cilPuzzle, cilSave, cilScrubber, cilSettings,
-    cilShare, cilShareAll, cilShareBoxed, cilShieldAlt, cilSpeech, cilSpeedometer, cilSpreadsheet, cilStar, cilSun,
-    cilTags, cilTask, cilTrash, cilUnderline, cilUser, cilUserFemale, cilUserFollow, cilUserUnfollow, cilWarning, cilX,
-    cilXCircle
+    cilAsterisk, cilAt, cilBadge, cilBan, cilBasket, cilBell, cilBold, cilBookmark, cilCalculator, cilCalendar,
+    cilChartPie, cilCheck, cilCheckCircle, cilChevronBottom, cilChevronLeft, cilChevronRight, cilChevronTop, cilCircle,
+    cilCloudDownload, cilCode, cilCommentSquare, cilCreditCard, cilCursor, cilCursorMove, cilDescription, cilDollar,
+    cilDrop, cilEnvelopeClosed, cilEnvelopeLetter, cilEnvelopeOpen, cilEuro, cilExternalLink, cilFile, cilFingerprint,
+    cilFullscreen, cilFullscreenExit, cilGlobeAlt, cilGraph, cilGrid, cilHome, cilInbox, cilIndentDecrease,
+    cilIndentIncrease, cilInputPower, cilItalic, cilJustifyCenter, cilJustifyLeft, cilLaptop, cilLayers, cilLibrary,
+    cilLibraryAdd, cilLightbulb, cilLink, cilList, cilListNumbered, cilListRich, cilLocationPin, cilLockLocked,
+    cilMagnifyingGlass, cilMap, cilMoon, cilNotes, cilOptions, cilPaperclip, cilPaperPlane, cilPencil, cilPeople,
+    cilPhone, cilPlus, cilPrint, cilPuzzle, cilSave, cilScrubber, cilSettings, cilShare, cilShareAll, cilShareBoxed,
+    cilShieldAlt, cilSpeech, cilSpeedometer, cilSpreadsheet, cilStar, cilSun, cilTags, cilTask, cilTrash, cilUnderline,
+    cilUser, cilUserFemale, cilUserFollow, cilUserUnfollow, cilWarning, cilX, cilXCircle
 } from '@coreui/icons'
 
 export const icons = Object.assign({}, {
@@ -25,6 +25,12 @@ export const icons = Object.assign({}, {
     logo,
     logoNegative
 }, {
+    cilExternalLink,
+    cilFingerprint,
+    cilDescription,
+    cilLink,
+    cilBadge,
+    cilAt,
     cilAlignCenter,
     cilAccountLogout,
     cilAlignLeft,
