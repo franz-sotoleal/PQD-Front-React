@@ -2,8 +2,12 @@ import {
     CButton, CCol, CCollapse, CForm, CInput, CInputGroup, CInputGroupPrepend, CInputGroupText, CInvalidFeedback, CModal,
     CModalBody, CModalFooter, CModalHeader, CModalTitle, CRow, CSwitch
 } from "@coreui/react";
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import CIcon from "@coreui/icons-react";
+import {testJiraApiConnection, testSonarqubeApiConnection} from "../../utils/product-service";
+import {useUserContext} from "../../context/UserContextProvider";
+import {renderInputHelper} from "../common/FormHelper";
+import {Loader} from "../common/Loader";
 
 const AddProductModal = ({state, setState}) => {
 
@@ -20,9 +24,18 @@ const AddProductModal = ({state, setState}) => {
     const [jiraUserEmail, setJiraUserEmail] = useState("");
     const [jiraApiToken, setJiraApiToken] = useState("");
 
-    // Other states
+    // Other states and refs
     const [sonarqubeEnabled, setSonarqubeEnabled] = useState(true);
+    const [sonarqubeConnection, setSonarqubeConnection] = useState({});
+    const sonarqubeTested = useRef(false);
+    const [sonarqubeConnectionLoading, setSonarqubeConnectionLoading] = useState(false);
     const [jiraEnabled, setJiraEnabled] = useState(true);
+    const [jiraConnection, setJiraConnection] = useState({});
+    const jiraTested = useRef(false);
+    const [jiraConnectionLoading, setJiraConnectionLoading] = useState(false);
+
+    // Context
+    const {getUserInfo} = useUserContext();
 
     const resetFields = () => {
         setName("");
@@ -52,6 +65,63 @@ const AddProductModal = ({state, setState}) => {
     const emailValid = (email) => {
         return email === "" || /^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$/.test(email);
     }
+
+    const sqDataExists = () => {
+        return sqBaseUrl !== "" && baseUrlValid(sqBaseUrl)
+            && sqComponentName !== "";
+    }
+
+    const jiraDataExists = () => {
+        return jiraBaseUrl !== "" && baseUrlValid(jiraBaseUrl)
+            && jiraBoardId !== "" && !isNaN(jiraBoardId)
+        && jiraUserEmail !== "" && emailValid(jiraUserEmail)
+        && jiraApiToken !== ""
+    }
+
+    const testSqConnection = () => {
+        if (sqDataExists()) {
+            setSonarqubeConnectionLoading(true);
+            const requestBody = {
+                baseUrl: sqBaseUrl,
+                componentName: sqComponentName,
+                token: sqApiToken
+            }
+            testSonarqubeApiConnection(getUserInfo().jwt, requestBody)
+                .then((res) => {
+                    setSonarqubeConnection(res);
+                })
+                .catch(e => console.error(e))
+                .finally(() => {
+                    sonarqubeTested.current = true;
+                    setSonarqubeConnectionLoading(false);
+                });
+        }
+    }
+
+    const testJiraConnection = () => {
+        if (jiraDataExists()) {
+            setJiraConnectionLoading(true);
+            const requestBody = {
+                baseUrl: jiraBaseUrl,
+                boardId: jiraBoardId,
+                userEmail: jiraUserEmail,
+                token: jiraApiToken
+            }
+            testJiraApiConnection(getUserInfo().jwt, requestBody)
+                .then((res) => {
+                    setJiraConnection(res);
+                })
+                .catch(e => console.error(e))
+                .finally(() => {
+                    jiraTested.current = true;
+                    setJiraConnectionLoading(false);
+                });
+        }
+    }
+
+    const renderLoader = () => {
+        return <Loader disableLoaderText className="text-center"/>;
+    };
 
     return (
         <CModal
@@ -156,7 +226,26 @@ const AddProductModal = ({state, setState}) => {
                                     onChange={value => setSqApiToken(value.currentTarget.value)}
                                     value={sqApiToken}/>
                         </CInputGroup>
+
+                        {sonarqubeConnectionLoading
+                         ? renderLoader()
+                         : <CButton disabled={!(sonarqubeEnabled && sqDataExists())}
+                                    color="primary"
+                                    variant="ghost"
+                                    block
+                                    onClick={() => testSqConnection()}>
+                             <CIcon name="cil-link"/> Test Sonarqube Connection
+                         </CButton>}
+
+                        {sonarqubeTested.current
+                         ? sonarqubeConnection?.connectionOk
+                           ? renderInputHelper(sonarqubeConnection?.message, "success")
+                           : renderInputHelper(sonarqubeConnection?.message)
+                        : null}
+
                     </CCollapse>
+
+                    <br/>
 
                     <CRow>
                         <CCol xs="10">
@@ -212,9 +301,11 @@ const AddProductModal = ({state, setState}) => {
                             <CInput type="text"
                                     placeholder="Jira board id"
                                     autoComplete=""
-                                    valid={jiraBoardId !== ""}
+                                    invalid={isNaN(jiraBoardId)}
+                                    valid={jiraBoardId !== "" && !isNaN(jiraBoardId)}
                                     onChange={value => setJiraBoardId(value.currentTarget.value)}
                                     value={jiraBoardId}/>
+                            <CInvalidFeedback>Id must be numeric</CInvalidFeedback>
                         </CInputGroup>
 
                         <CInputGroup className="mb-3">
@@ -246,6 +337,23 @@ const AddProductModal = ({state, setState}) => {
                                     onChange={value => setJiraApiToken(value.currentTarget.value)}
                                     value={jiraApiToken}/>
                         </CInputGroup>
+
+                        {jiraConnectionLoading
+                         ? renderLoader()
+                         : <CButton disabled={!(jiraEnabled && jiraDataExists())}
+                                    color="primary"
+                                    variant="ghost"
+                                    block
+                                    onClick={() => testJiraConnection()}>
+                             <CIcon name="cil-link"/> Test Jira Connection
+                         </CButton>}
+
+                        {jiraTested.current
+                         ? jiraConnection?.connectionOk
+                           ? renderInputHelper(jiraConnection?.message, "success")
+                           : renderInputHelper(jiraConnection?.message)
+                         : null}
+
                     </CCollapse>
 
                 </CForm>
@@ -255,7 +363,7 @@ const AddProductModal = ({state, setState}) => {
                 <CButton color="info" onClick={() => setState(!state)}>Do Something</CButton>{' '}
             </CModalFooter>
         </CModal>
-    );
+    )
 }
 
 export default AddProductModal
