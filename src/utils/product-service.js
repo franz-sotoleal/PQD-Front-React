@@ -22,6 +22,24 @@ export const getProducts = (jwt) => {
         })
 }
 
+export const saveProduct = (jwt, body) => {
+    return httpPost(`${config.pqdApiBaseUrl}/product/save`, body, jwt)
+        .then(res => {
+            if (res.status === 200) {
+                return {status: "OK", body: res.json()};
+            } else {
+                return {status: "Error", body: res.json()};
+            }
+        })
+        .then(data => {
+            if (data.status === "OK") {
+                return data.body;
+            } else {
+                throw new Error("Saving product failed");
+            }
+        });
+}
+
 export const testSonarqubeApiConnection = (jwt, body) => {
     return testConnection("sonarqube", body, jwt);
 }

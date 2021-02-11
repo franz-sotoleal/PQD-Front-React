@@ -4,7 +4,7 @@ import {
 } from "@coreui/react";
 import React, {useRef, useState} from "react";
 import CIcon from "@coreui/icons-react";
-import {testJiraApiConnection, testSonarqubeApiConnection} from "../../utils/product-service";
+import {saveProduct, testJiraApiConnection, testSonarqubeApiConnection} from "../../utils/product-service";
 import {useUserContext} from "../../context/UserContextProvider";
 import {renderInputHelper} from "../common/FormHelper";
 import {Loader} from "../common/Loader";
@@ -74,8 +74,15 @@ const AddProductModal = ({state, setState}) => {
     const jiraDataExists = () => {
         return jiraBaseUrl !== "" && baseUrlValid(jiraBaseUrl)
             && jiraBoardId !== "" && !isNaN(jiraBoardId)
-        && jiraUserEmail !== "" && emailValid(jiraUserEmail)
-        && jiraApiToken !== ""
+            && jiraUserEmail !== "" && emailValid(jiraUserEmail)
+            && jiraApiToken !== ""
+    }
+
+    const saveButtonEnabled = () => {
+        return name !== "" && nameValid()
+            && (jiraEnabled || sonarqubeEnabled)
+            && (jiraEnabled && jiraDataExists() || !jiraEnabled)
+            && (sonarqubeEnabled && sqDataExists() || !sonarqubeEnabled);
     }
 
     const testSqConnection = () => {
@@ -117,6 +124,45 @@ const AddProductModal = ({state, setState}) => {
                     setJiraConnectionLoading(false);
                 });
         }
+    }
+
+    const save = () => {
+        const userId = getUserInfo().userId;
+
+        if (!userId) {
+            console.error("userId not found, exiting save function");
+            return;
+        }
+
+        const requestBody = {
+            name: name,
+            userId: userId,
+        };
+
+        if (sonarqubeEnabled) {
+            requestBody.sonarqubeInfo = {
+                baseUrl: sqBaseUrl,
+                componentName: sqComponentName,
+                token: sqApiToken
+            };
+        }
+
+        if (jiraEnabled) {
+            requestBody.jiraInfo = {
+                baseUrl: jiraBaseUrl,
+                boardId: jiraBoardId,
+                userEmail: jiraUserEmail,
+                token: jiraApiToken
+            };
+        }
+
+        saveProduct(getUserInfo().jwt, requestBody)
+            .then(res => {
+                console.log(res);
+                // TODO näita infot kuidas toodet kasutada
+            })
+            .catch(err => console.error(err))
+            .finally(setState(!state));
     }
 
     const renderLoader = () => {
@@ -241,7 +287,7 @@ const AddProductModal = ({state, setState}) => {
                          ? sonarqubeConnection?.connectionOk
                            ? renderInputHelper(sonarqubeConnection?.message, "success")
                            : renderInputHelper(sonarqubeConnection?.message)
-                        : null}
+                         : null}
 
                     </CCollapse>
 
@@ -359,8 +405,14 @@ const AddProductModal = ({state, setState}) => {
                 </CForm>
             </CModalBody>
             <CModalFooter>
-                <CButton color="secondary" onClick={() => setState(!state)}>Cancel</CButton>
-                <CButton color="info" onClick={() => setState(!state)}>Do Something</CButton>{' '}
+                <CButton color="secondary"
+                         onClick={() => setState(!state)}>
+                    <CIcon name="cil-ban"/> Cancel
+                </CButton>
+                <CButton color="info"
+                         disabled={!saveButtonEnabled()}
+                         onClick={() => save()}>
+                    <CIcon name="cil-save"/> Save Product</CButton>{' '}
             </CModalFooter>
         </CModal>
     )

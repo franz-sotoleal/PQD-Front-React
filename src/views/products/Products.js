@@ -81,7 +81,7 @@ const Products = () => {
                     (item) => {
                     return (
                             <td>
-                                {item.releaseInfo?.[0].qualityLevel * 100 + "%"}
+                                {item.releaseInfo?.[0]?.qualityLevel * 100 + "%"}
                             </td>
                         )
                     }
