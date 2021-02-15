@@ -1,4 +1,4 @@
-import {httpGet, httpPost} from "./http-request";
+import {httpGet, httpPost, httpRequestWithBasicAuth} from "./http-request";
 import config from "../config/config.json";
 
 export const getProducts = (jwt) => {
@@ -36,6 +36,17 @@ export const saveProduct = (jwt, body) => {
                 return data.body;
             } else {
                 throw new Error("Saving product failed");
+            }
+        });
+}
+
+export const triggerReleaseInfoCollection = (url, token) => {
+    return httpRequestWithBasicAuth("POST", url, {}, token)
+        .then(res => {
+            if (res.status === 200) {
+                return {status: "OK"};
+            } else {
+                return {status: "Error"};
             }
         });
 }

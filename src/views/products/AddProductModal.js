@@ -4,29 +4,14 @@ import {
 } from "@coreui/react";
 import React, {useRef, useState} from "react";
 import CIcon from "@coreui/icons-react";
-import {saveProduct, testJiraApiConnection, testSonarqubeApiConnection} from "../../utils/product-service";
+import {
+    saveProduct, testJiraApiConnection, testSonarqubeApiConnection, triggerReleaseInfoCollection
+} from "../../utils/product-service";
 import {useUserContext} from "../../context/UserContextProvider";
 import {renderInputHelper} from "../common/FormHelper";
 import {Loader} from "../common/Loader";
 import config from "../../config/config.json";
-
-const dummyProduct = {
-    id: 1,
-    name: "Demo Product",
-    token: "8257cc3a6b0610da1357f73e03524b090658553a",
-    sonarqubeInfo: {
-        baseUrl: "http://localhost:9000",
-        componentName: "ESI-builtit",
-        token: "9257cc3a6b0610da1357f73e03524b090658553d"
-    }
-    ,
-    jiraInfo: {
-        baseUrl: "https://kert944.atlassian.net",
-        boardId: 1,
-        token: "dlNrqUp5na04fQyacxcx58EF",
-        userEmail: "prinkkert@gmail.com"
-    }
-}
+import {useHistory} from "react-router-dom";
 
 const AddProductModal = ({state, setState}) => {
 
@@ -53,22 +38,41 @@ const AddProductModal = ({state, setState}) => {
     const jiraTested = useRef(false);
     const [jiraConnectionLoading, setJiraConnectionLoading] = useState(false);
 
-    const [savedProduct, setSavedProduct] = useState(dummyProduct); // TODO remove dummy product
+    const [savedProduct, setSavedProduct] = useState(undefined);
     const [productSaving, setProductSaving] = useState(false);
 
-    const [accordion, setAccordion] = useState(-1);
+    const [triggerRequestDone, setTriggerRequestDone] = useState(false);
+    const [triggerRequestLoading, setTriggerRequestLoading] = useState(false);
+    const [triggerRequestResStatus, setTriggerRequestResStatus] = useState("");
+
+    const [accordion, setAccordion] = useState(2);
 
     // Context
-    const {getUserInfo} = useUserContext();
+    const {getUserInfo, setUserInfo} = useUserContext();
+    const history = useHistory();
 
-    const resetFields = () => { // TODO clear the fields after saving and show reset button on successful saving result
+    const logOut = () => {
+        setUserInfo(undefined);
+        history.push("/login")
+    }
+
+    const resetModal = () => {
         setName("");
+        setSqBaseUrl("");
         setSqComponentName("");
         setSqApiToken("");
         setJiraBaseUrl("");
         setJiraBoardId("");
         setJiraUserEmail("");
         setJiraApiToken("");
+        setSavedProduct(undefined);
+        setTriggerRequestDone(false);
+        setTriggerRequestLoading(false);
+        setTriggerRequestResStatus("");
+        jiraTested.current = false;
+        sonarqubeTested.current = false;
+        setJiraConnectionLoading(false);
+        setSonarqubeConnectionLoading(false);
     }
 
     const nameValid = () => {
@@ -150,6 +154,19 @@ const AddProductModal = ({state, setState}) => {
         }
     }
 
+    const makeTriggerRequest = (url) => {
+        setTriggerRequestLoading(true);
+        triggerReleaseInfoCollection(url, savedProduct?.token)
+            .then((res) => {
+                setTriggerRequestResStatus(res?.status);
+            })
+            .catch(e => console.error(e))
+            .finally(() => {
+                setTriggerRequestDone(true);
+                setTriggerRequestLoading(false);
+            });
+    }
+
     const save = () => {
         const userId = getUserInfo().userId;
 
@@ -195,6 +212,11 @@ const AddProductModal = ({state, setState}) => {
         return <Loader disableLoaderText={disableLoaderText || true} className="text-center"/>;
     };
 
+    const messagingUrl = `${config.pqdApiBaseUrl}/messaging/trigger?productId=${savedProduct?.id}`;
+    const token = savedProduct?.token;
+    const encryptedToken = btoa(token + ":");
+    const authorizationHeaderValue = "Basic " + encryptedToken;
+
     return (
         <CModal
             show={state}
@@ -218,7 +240,7 @@ const AddProductModal = ({state, setState}) => {
 
                         <CCard>
                             <CCardBody>
-                                {`${config.pqdApiBaseUrl}/messaging/trigger?productId=${savedProduct?.id}`}
+                                {messagingUrl}
                             </CCardBody>
                         </CCard>
 
@@ -226,68 +248,56 @@ const AddProductModal = ({state, setState}) => {
 
                         <CCard>
                             <CCardBody>
-                                {savedProduct?.token}
+                                {token}
                             </CCardBody>
                         </CCard>
                     </CAlert>
+                    <hr/>
+                    <p>You can trigger the first release info collection with the button below. The request is
+                       asynchronous - successful message means that the API has received the request and has
+                       started working on it. Note that the button can
+                       be pressed once and the collection retrieves the information from the tools at the current
+                       time:</p>
+                    {!triggerRequestDone && !triggerRequestLoading
+                     ? <CButton color="primary"
+                                variant="ghost"
+                                block
+                                onClick={() => makeTriggerRequest(messagingUrl)}>
+                         <CIcon name="cil-link"/> Collect release info
+                     </CButton>
+                     : null}
 
-                    <hr />
+                    {triggerRequestLoading
+                     ? renderLoader(true)
+                     : null}
+
+                    {triggerRequestDone && !triggerRequestLoading
+                     ? triggerRequestResStatus === "OK"
+                       ? renderInputHelper("Release info collection started", "success")
+                       : renderInputHelper(
+                                "Houston, we have a problem... Release info collection request failed for some reason",
+                                "warning")
+                     : null}
+
+                    <hr/>
 
                     <CCardBody>
                         <div id="accordion">
                             <CCard className="mb-0">
-                                <CCardHeader id="headingOne">
+                                <CCardHeader id="headingThree">
                                     <CButton
                                         block
                                         color="link"
                                         className="text-left m-0 p-0"
-                                        onClick={() => setAccordion(accordion === 0 ? null : 0)}
+                                        onClick={() => setAccordion(accordion === 2 ? null : 2)}
                                     >
                                         <h5 className="m-0 p-0">
-                                            <CIcon name={accordion !== 0 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
-                                            {" "}How to do basic auth
-                                        </h5>
-                                    </CButton>
-                                </CCardHeader>
-                                <CCollapse show={accordion === 0}>
-                                    <CCardBody>
-                                        The endpoint requires basic authentication with base64 encrypted token:
-                                        <ul>
-                                            <li>In Postman, simply put the token to the username field and postman does the rest</li>
-                                            <li>If sending by code (from your pipeline for example), then</li>
-                                            <ul>
-                                                <li>Add colon ':' to the end of the token</li>
-                                                <li>Encrypt the token to Base64</li>
-                                                <ul>
-                                                    <li>Javascript encrypting example: btoa("your_product_token:"))</li>
-                                                </ul>
-                                                <li>Add the encrypted token to authorization header</li>
-                                                <ul>
-                                                    <li>Add word "Basic" before the token</li>
-                                                    <ul>
-                                                        <li>Example: "Basic ODI1N2N..."</li>
-                                                    </ul>
-                                                </ul>
-                                            </ul>
-                                        </ul>
-                                    </CCardBody>
-                                </CCollapse>
-                            </CCard>
-                            <CCard className="mb-0">
-                                <CCardHeader id="headingTwo">
-                                    <CButton
-                                        block
-                                        color="link"
-                                        className="text-left m-0 p-0"
-                                        onClick={() => setAccordion(accordion === 1 ? null : 1)}
-                                    >
-                                        <h5 className="m-0 p-0">
-                                            <CIcon name={accordion !== 1 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
+                                            <CIcon name={accordion !== 2 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
                                             {" "}Specified tools
                                         </h5>
                                     </CButton>
                                 </CCardHeader>
-                                <CCollapse show={accordion === 1}>
+                                <CCollapse show={accordion === 2}>
                                     <CCardBody>
                                         {savedProduct?.sonarqubeInfo
                                          ? <>
@@ -353,18 +363,137 @@ const AddProductModal = ({state, setState}) => {
                                     </CCardBody>
                                 </CCollapse>
                             </CCard>
+                            <CCard className="mb-0">
+                                <CCardHeader id="headingOne">
+                                    <CButton
+                                        block
+                                        color="link"
+                                        className="text-left m-0 p-0"
+                                        onClick={() => setAccordion(accordion === 0 ? null : 0)}
+                                    >
+                                        <h5 className="m-0 p-0">
+                                            <CIcon name={accordion !== 0 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
+                                            {" "}How to do basic auth
+                                        </h5>
+                                    </CButton>
+                                </CCardHeader>
+                                <CCollapse show={accordion === 0}>
+                                    <CCardBody>
+                                        The endpoint requires basic authentication with base64 encrypted token:
+                                        <ul>
+                                            <li>In Postman, simply put the token to the username field and postman does
+                                                the rest
+                                            </li>
+                                            <li>If sending by code (from your pipeline for example), then</li>
+                                            <ul>
+                                                <li>Add colon ':' to the end of the token</li>
+                                                <li>Encrypt the token to Base64</li>
+                                                <ul>
+                                                    <li>Javascript encrypting example: btoa("your_product_token:"))</li>
+                                                </ul>
+                                                <li>Add the encrypted token to authorization header</li>
+                                                <ul>
+                                                    <li>Add word "Basic" before the token</li>
+                                                    <ul>
+                                                        <li>Example: "Basic ODI1N2N..."</li>
+                                                    </ul>
+                                                </ul>
+                                            </ul>
+                                        </ul>
+                                    </CCardBody>
+                                </CCollapse>
+                            </CCard>
+                            <CCard className="mb-0">
+                                <CCardHeader id="headingTwo">
+                                    <CButton
+                                        block
+                                        color="link"
+                                        className="text-left m-0 p-0"
+                                        onClick={() => setAccordion(accordion === 1 ? null : 1)}
+                                    >
+                                        <h5 className="m-0 p-0">
+                                            <CIcon name={accordion !== 1 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
+                                            {" "}Request examples
+                                        </h5>
+                                    </CButton>
+                                </CCardHeader>
+                                <CCollapse show={accordion === 1}>
+                                    <CCardBody>
+                                        Here you can see three example requests of how to make a valid request with
+                                        authorization header to the triggering endpoint. These examples should help you
+                                        to implement the triggering request into your pipeline. The triggering request
+                                        should run after all other tools on the pipeline. For example, Sonarqube
+                                        analysis must be finished before making the triggering request.
+                                        <br/>
+                                        <hr/>
+                                        <h6>Javascript Fetch:</h6>
+                                        <code>const myHeaders = new Headers();</code>
+                                        <br/>
+                                        <br/>
+                                        <code>
+                                            myHeaders.append("Authorization", "{authorizationHeaderValue}");
+                                        </code>
+                                        <br/>
+                                        <br/>
+                                        <code>{"const requestOptions = \{method: 'POST', headers: myHeaders, redirect: 'follow'\};"}</code>
+                                        <br/>
+                                        <br/>
+                                        <code>fetch("{messagingUrl}", requestOptions)</code>
+                                        <br/>
+                                        <code>.then(response => response.text())</code>
+                                        <br/>
+                                        <code>.then(result => console.log(result))</code>
+                                        <br/>
+                                        <code>.catch(error => console.log('error', error))</code>
+                                        <hr/>
+
+                                        <h6>Python Requests:</h6>
+                                        <code>import requests</code>
+                                        <br/>
+                                        <br/>
+                                        <code>
+                                            url = "{messagingUrl}"
+                                        </code>
+                                        <br/>
+                                        <code>payload = {"{" + "}"}</code>
+                                        <br/>
+                                        <code>{"headers = {"}
+                                            {"'Authorization': '" + authorizationHeaderValue + "'}"}
+                                        </code>
+                                        <br/>
+                                        <br/>
+                                        <code>response = requests.request("POST", url, headers=headers,
+                                              data=payload)</code>
+                                        <br/>
+                                        <code>print(response.text)</code>
+                                        <hr/>
+
+                                        <h6>cURL:</h6>
+                                        <code>curl --location --request POST '{messagingUrl}' --header
+                                              'Authorization: {authorizationHeaderValue}'</code>
+
+                                    </CCardBody>
+                                </CCollapse>
+                            </CCard>
                         </div>
                     </CCardBody>
 
                     <CAlert color="info">
-                        <b>Log Out</b> and <b>Log In</b> to see the newly added product in the product list
+                        <b>Log Out</b> and <b>Log In</b> to see the newly added product in the product list. If you have
+                                       read the information above, then
+                        <CButton color="primary"
+                                 variant="ghost"
+                                 block
+                                 onClick={() => logOut()}>
+                            <CIcon name="cil-account-logout"/> Log Out Now
+                        </CButton>
                     </CAlert>
 
                 </CCollapse>
                 <CCollapse show={productSaving}>
                     {renderLoader(false)}
                 </CCollapse>
-                <CCollapse show={!productSaving}>
+                <CCollapse show={!productSaving && !savedProduct}>
                     <CForm>
                         <p className="text-muted">Add new product and start collecting information from Sonarqube and
                                                   Jira</p>
@@ -591,17 +720,31 @@ const AddProductModal = ({state, setState}) => {
                 </CCollapse>
             </CModalBody>
             <CModalFooter>
-                <CButton color="secondary"
-                         onClick={() => setState(!state)}>
-                    <CIcon name="cil-ban"/> Cancel
-                </CButton>
-                <CButton color="info"
-                         disabled={!saveButtonEnabled()}
-                         onClick={() => save()}>
-                    <CIcon name="cil-save"/> Save Product</CButton>{' '}
+                {!savedProduct
+                 ? <>
+                     <CButton color="secondary"
+                              onClick={() => setState(!state)}>
+                         <CIcon name="cil-ban"/> Cancel
+                     </CButton>
+                     <CButton color="info"
+                              disabled={!saveButtonEnabled()}
+                              onClick={() => save()}>
+                         <CIcon name="cil-save"/> Save Product
+                     </CButton>
+                 </>
+                 : <>
+                     <CButton color="danger"
+                              onClick={() => resetModal()}>
+                         <CIcon name="cil-x-circle"/> Reset Modal
+                     </CButton>
+                     <CButton color="info"
+                              onClick={() => setState(!state)}>
+                         <CIcon name="cil-ban"/> Close Modal
+                     </CButton>
+                 </>}
             </CModalFooter>
         </CModal>
-    )
+    );
 }
 
 export default AddProductModal
