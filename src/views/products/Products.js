@@ -1,10 +1,12 @@
-import {CAlert, CCard, CCardBody, CCardHeader, CDataTable} from "@coreui/react";
+import {CAlert, CButton, CCard, CCardBody, CCardHeader, CDataTable} from "@coreui/react";
+import CIcon from "@coreui/icons-react"
 import React, {useEffect, useState} from 'react'
 import {useUserContext} from "../../context/UserContextProvider";
 import {useHistory} from "react-router-dom";
 import {useProductContext} from "../../context/ProductContextProvider";
 import {getProducts} from "../../utils/product-service";
 import {Loader} from "../common/Loader";
+import AddProductModal from "./AddProductModal";
 
 const fields = ['id', 'name', 'currentQuality']
 
@@ -35,6 +37,7 @@ const Products = () => {
     const {getUserInfo} = useUserContext();
     const {products, setProducts} = useProductContext();
     const [componentState, setComponentState] = useState(ComponentStates.Loading);
+    const [info, setInfo] = useState(false);
 
     const history = useHistory();
 
@@ -76,11 +79,9 @@ const Products = () => {
             scopedSlots={{
                 'currentQuality':
                     (item) => {
-                        //console.log(item);
-
                     return (
                             <td>
-                                {item.releaseInfo?.[0].qualityLevel * 100 + "%"}
+                                {item.releaseInfo?.[0]?.qualityLevel * 100 + "%"}
                             </td>
                         )
                     }
@@ -96,7 +97,7 @@ const Products = () => {
 
     const renderNoProductsNotice = () => {
         return <CAlert color="primary">
-            You have no products. Please add a product // Todo add product button
+            You have no products. Please add a product
         </CAlert>
     }
 
@@ -119,12 +120,22 @@ const Products = () => {
             <>
                 <CCard>
                     <CCardHeader>
-                        Products
+                        <CButton color="link" disabled >
+                            Products <CIcon name="cil-library"/>
+                        </CButton>
+                        <div className="card-header-actions">
+                            <CButton block color="primary" variant="ghost" onClick={() => setInfo(!info)}>
+                                <CIcon name="cil-library-add"/> Add product
+                            </CButton>
+                        </div>
+
                     </CCardHeader>
                     <CCardBody>
                         {renderBody()}
                     </CCardBody>
                 </CCard>
+
+                <AddProductModal setState={setInfo} state={info}/>
             </>
         )
     }

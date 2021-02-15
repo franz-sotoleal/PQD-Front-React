@@ -30,7 +30,7 @@ export async function httpRequest(
         requestParams,
         ...params
     } = {}) {
-    console.log("HTTP REQUEST meetod")
+
     let headersJson = new Headers({
         "Content-Type": "application/json",
         "X-Requested-With": "XMLHttpRequest",
@@ -39,6 +39,40 @@ export async function httpRequest(
 
     if (jwt) {
         headersJson.append("Authorization", "Bearer " + jwt)
+    }
+
+    if (requestParams) {
+        const urlParams = serialize(requestParams);
+        url += "?" + urlParams;
+    }
+
+    return fetch(url, {
+        method,
+        headers: headersJson,
+        body: body ? JSON.stringify(body) : undefined,
+        ...params,
+    }).then(res => res);
+}
+
+export async function httpRequestWithBasicAuth(
+    method,
+    url,
+    body,
+    basicAuthToken,
+    {
+        headers = {},
+        requestParams,
+        ...params
+    } = {}) {
+
+    let headersJson = new Headers({
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        ...headers,
+    })
+
+    if (basicAuthToken) {
+        headersJson.append("Authorization", "Basic " + btoa(basicAuthToken + ":"))
     }
 
     if (requestParams) {

@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react'
 import {
-    CAlert, CButton, CCard, CCardBody, CCol, CContainer, CForm, CFormText, CInput, CInputGroup, CInputGroupPrepend,
-    CInputGroupText, CModal, CModalBody, CModalFooter, CModalHeader, CModalTitle, CRow
+    CAlert, CButton, CCard, CCardBody, CCol, CContainer, CForm, CInput, CInputGroup, CInputGroupPrepend,
+    CInputGroupText, CInvalidFeedback, CModal, CModalBody, CModalFooter, CModalHeader, CModalTitle, CRow
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {useUserContext} from "../../../context/UserContextProvider";
@@ -82,10 +82,6 @@ const Register = () => {
         return repeatPassword === "" || repeatPassword === password;
     }
 
-    const renderInputHelper = (message) => {
-        return <CFormText className="alert-danger">{message}</CFormText>
-    }
-
     const redirectToLoginPage = () => {
         setSuccess(!success);
         history.push("/login");
@@ -125,7 +121,7 @@ const Register = () => {
                                          Register failed: {registerFailMessage}
                                      </CAlert>
                                      : null}
-                                    {!usernameValid() ? renderInputHelper("Username too short") : null}
+
                                     <CInputGroup className="mb-3">
                                         <CInputGroupPrepend>
                                             <CInputGroupText>
@@ -139,8 +135,9 @@ const Register = () => {
                                                 valid={username !== "" && usernameValid()}
                                                 onChange={value => setUsername(value.currentTarget.value)}
                                                 value={username}/>
+                                        <CInvalidFeedback>Username too short</CInvalidFeedback>
                                     </CInputGroup>
-                                    {!emailValid() ? renderInputHelper("Invalid email format") : null}
+
                                     <CInputGroup className="mb-3">
                                         <CInputGroupPrepend>
                                             <CInputGroupText>@</CInputGroupText>
@@ -152,6 +149,7 @@ const Register = () => {
                                                 valid={email !== "" && emailValid()}
                                                 onChange={value => setEmail(value.currentTarget.value)}
                                                 value={email}/>
+                                        <CInvalidFeedback>Invalid email format</CInvalidFeedback>
                                     </CInputGroup>
                                     <CInputGroup className="mb-3">
                                         <CInputGroupPrepend>
@@ -177,7 +175,7 @@ const Register = () => {
                                                 onChange={value => setLastName(value.currentTarget.value)}
                                                 value={lastName}/>
                                     </CInputGroup>
-                                    {!passwordValid() ? renderInputHelper("Password too short") : null}
+
                                     <CInputGroup className="mb-3">
                                         <CInputGroupPrepend>
                                             <CInputGroupText>
@@ -191,8 +189,9 @@ const Register = () => {
                                                 valid={password !== "" && passwordValid()}
                                                 onChange={value => setPassword(value.currentTarget.value)}
                                                 value={password}/>
+                                        <CInvalidFeedback>Password too short</CInvalidFeedback>
                                     </CInputGroup>
-                                    {!repeatPasswordValid() ? renderInputHelper("Passwords don't match") : null}
+
                                     <CInputGroup className="mb-4">
                                         <CInputGroupPrepend>
                                             <CInputGroupText>
@@ -206,6 +205,7 @@ const Register = () => {
                                                 valid={repeatPassword !== "" && repeatPasswordValid()}
                                                 onChange={value => setRepeatPassword(value.currentTarget.value)}
                                                 value={repeatPassword}/>
+                                        <CInvalidFeedback>Passwords don't match</CInvalidFeedback>
                                     </CInputGroup>
                                     <CButton color="success"
                                              block

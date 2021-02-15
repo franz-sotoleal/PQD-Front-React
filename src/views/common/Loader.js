@@ -1,8 +1,8 @@
-export const Loader = () => {
-    return <div>
-        <div className="spinner-border text-primary" role="status">
+export const Loader = ({disableLoaderText, className}) => {
+    return <div className={`${className}`}>
+        <div className={`spinner-border text-primary`} role="status">
             <span className="sr-only">Loading...</span>
         </div>
-        <p>Loading, please wait...</p>
+        {disableLoaderText ? null : <p>Loading, please wait...</p>}
     </div>
 }
