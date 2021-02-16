@@ -120,7 +120,7 @@ export const Dashboard = (props) => {
     }, []);
 
     const renderDetailView = () => {
-        const MAX_GRAPH_ELEMENTS = 15;
+        const MAX_GRAPH_ELEMENTS = 20;
         if (selectedProduct?.releaseInfo?.length > 0) {
             const qualityLevels = selectedProduct.releaseInfo.map(rel => rel.qualityLevel * 100);
             const releaseIds = selectedProduct.releaseInfo.map(rel => {
