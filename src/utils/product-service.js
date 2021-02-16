@@ -5,11 +5,11 @@ export const getProducts = (jwt) => {
     return fetchProducts(jwt)
         .then(products => {
             const productWithReleaseInfoList = [];
-            return Promise.all(products.map(async (product, idx) => {
+            return Promise.all(products.map(async (product) => {
                 const productWithReleaseInfo = product;
                 await fetchReleaseInfo(product.id, jwt)
                     .then(releaseInfo => {
-                        productWithReleaseInfo.id = idx;
+                        productWithReleaseInfo.id = product.id;
                         productWithReleaseInfo.releaseInfo = releaseInfo;
                         productWithReleaseInfoList.push(productWithReleaseInfo);
                     })
