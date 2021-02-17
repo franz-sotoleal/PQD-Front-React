@@ -1,4 +1,4 @@
-import {CAlert, CButton, CCard, CCardBody, CCardHeader, CDataTable} from "@coreui/react";
+import {CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CDataTable} from "@coreui/react";
 import {CChartLine} from "@coreui/react-chartjs";
 import CIcon from "@coreui/icons-react";
 import AddProductModal from "./AddProductModal";
@@ -31,8 +31,8 @@ export const ProductList = () => {
 
     useEffect(() => {
         const jwt = getUserInfo()?.jwt;
-        if (jwt) {
-            setComponentState(ComponentStates.Loading)
+        setComponentState(ComponentStates.Loading)
+        if (jwt && !products) {
             getProducts(jwt)
                 .then((products) => {
                     if (products.length > 0) {
@@ -45,8 +45,10 @@ export const ProductList = () => {
                 .catch(() => {
                     setComponentState(ComponentStates.Error)
                 })
+        } else if (products) {
+            setComponentState(ComponentStates.Displaying);
         } else {
-            setComponentState(ComponentStates.Error)
+            setComponentState(ComponentStates.Error);
         }
     }, []);
 
@@ -62,7 +64,6 @@ export const ProductList = () => {
     };
 
     const renderTable = () => {
-        console.log(products);
         return <CDataTable
             items={products}
             fields={fields}
@@ -74,17 +75,33 @@ export const ProductList = () => {
             scopedSlots={{
                 'name':
                     (item) => {
-                    return (
-                        <td>
-                            <b>{item.name}</b>
-                        </td>
-                    )
-                },
+                        return (
+                            <td>
+                                <b>{item.name}</b>
+                            </td>
+                        )
+                    },
                 'currentQuality':
                     (item) => {
+                        const getBadge = (qualityLevel) => {
+                            if (qualityLevel >= 0.75) {
+                                return "success";
+                            } else if (qualityLevel >= 0.5) {
+                                return 'warning';
+                            } else if (qualityLevel < 0.5) {
+                                return "danger";
+                            } else {
+                                return "info";
+                            }
+                        }
+                        const qualityLevel = item.releaseInfo?.[0]?.qualityLevel;
                         return (
-                            <td >
-                                {item.releaseInfo?.[0]?.qualityLevel * 100 + "%"}
+                            <td>
+                                <CBadge color={getBadge(qualityLevel)}>
+                                    {qualityLevel
+                                     ? qualityLevel * 100 + "%"
+                                     : "Not Available"}
+                                </CBadge>
                             </td>
                         )
                     },
@@ -95,7 +112,7 @@ export const ProductList = () => {
                             return [
                                 {
                                     data: qualityLevels,
-                                    borderColor: getColor("primary"),
+                                    borderColor: getColor("info"),
                                     backgroundColor: getColor("transparent"),
                                     pointBackgroundColor: getColor("transparent"),
                                     pointHoverBackgroundColor: getColor("transparent")
@@ -103,12 +120,6 @@ export const ProductList = () => {
                             ]
                         }
                         const qualityLevels = item.releaseInfo.map(rel => rel.qualityLevel * 100);
-                        const releaseIds = item.releaseInfo.map(rel => {
-                            const timestamp = rel.created;
-                            const date = new Date(timestamp);
-                            return date.getDate() + ". " + date.toString().split(" ")[1] + " " + date.getFullYear() +
-                                ", " + date.getHours() + ":" + date.getMinutes();
-                        });
                         const defaultOptions = {
                             maintainAspectRatio: false,
                             legend: {
@@ -125,18 +136,27 @@ export const ProductList = () => {
                         };
 
                         const datasets = getDatasets(qualityLevels);
+                        if (datasets?.[0]?.data?.length > 0) {
+                            return (
+                                <td width={6}>
+                                    <CChartLine
+                                        style={{height: '60px', marginTop: '5px', marginBottom: '5px'}}
+                                        datasets={datasets.slice(0, MAX_GRAPH_ELEMENTS)}
+                                        options={defaultOptions}
+                                    />
+                                </td>
+                            );
+                        }
                         return (
-                            <td width="6">
-                                <CChartLine
-                                    style={{height: '60px', marginTop: '5px', marginBottom: '5px'}}
-                                    datasets={datasets.slice(0, MAX_GRAPH_ELEMENTS)}
-                                    options={defaultOptions}
-                                />
+                            <td width={6}>
+                                <CAlert color="info">
+                                    No Preview Available
+                                </CAlert>
                             </td>
                         )
                     }
             }}
-        />
+        />;
     };
 
     const renderError = () => {

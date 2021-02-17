@@ -10,7 +10,6 @@ import {getStyle, hexToRgba} from "@coreui/utils";
 
 const brandInfo = getStyle('info') || '#20a8d8'
 
-
 const ComponentStates = {
     Loading: "loading",
     Error: "error",
@@ -63,8 +62,6 @@ const defaultOptions = {
         }
     }
 };
-
-
 
 export const Dashboard = (props) => {
 

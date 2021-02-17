@@ -17,6 +17,7 @@ export const getProducts = (jwt) => {
                         console.error(err);
                     })
             })).then(() => {
+                productWithReleaseInfoList.sort((a, b) => a.id - b.id);
                 return productWithReleaseInfoList;
             })
         })
