@@ -10,6 +10,7 @@ export const getProducts = (jwt) => {
                 await fetchReleaseInfo(product.id, jwt)
                     .then(releaseInfo => {
                         productWithReleaseInfo.id = product.id;
+                        releaseInfo.sort((a,b) => a.id - b.id);
                         productWithReleaseInfo.releaseInfo = releaseInfo;
                         productWithReleaseInfoList.push(productWithReleaseInfo);
                     })

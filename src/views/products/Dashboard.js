@@ -1,5 +1,7 @@
-import {CAlert, CCard, CCardBody} from "@coreui/react";
-import React, {useEffect, useState} from "react";
+import {
+    CAlert, CBadge, CCard, CCardBody, CCol, CDropdown, CDropdownItem, CDropdownMenu, CDropdownToggle, CRow
+} from "@coreui/react";
+import React, {useEffect, useRef, useState} from "react";
 import {CChartLine} from "@coreui/react-chartjs";
 import {useUserContext} from "../../context/UserContextProvider";
 import {useProductContext} from "../../context/ProductContextProvider";
@@ -70,6 +72,10 @@ export const Dashboard = (props) => {
 
     const [componentState, setComponentState] = useState(ComponentStates.Loading);
     const [selectedProduct, setSelectedProduct] = useState(undefined);
+    const [qualityLevels, setQualityLevels] = useState([]);
+    const [releaseIds, setReleaseIds] = useState([]);
+    const [selectedRelease, setSelectedRelease] = useState(undefined);
+    const dropdownButtonTitle = useRef();
 
     const renderLoader = () => {
         return <CCardBody align="center">
@@ -116,8 +122,7 @@ export const Dashboard = (props) => {
         }
     }, []);
 
-    const renderDetailView = () => {
-        const MAX_GRAPH_ELEMENTS = 20;
+    useEffect(() => {
         if (selectedProduct?.releaseInfo?.length > 0) {
             const qualityLevels = selectedProduct.releaseInfo.map(rel => rel.qualityLevel * 100);
             const releaseIds = selectedProduct.releaseInfo.map(rel => {
@@ -126,18 +131,78 @@ export const Dashboard = (props) => {
                 return date.getDate() + ". " + date.toString().split(" ")[1] + " " + date.getFullYear() +
                     ", " + date.getHours() + ":" + date.getMinutes();
             });
+            setQualityLevels(qualityLevels);
+            setReleaseIds(releaseIds);
+        }
+    }, [selectedProduct])
 
+    const onDropdownItemClick = (idx, rel) => {
+        const selRel = selectedProduct.releaseInfo[idx]
+        dropdownButtonTitle.current = rel;
+        setSelectedRelease(selRel);
+    }
+
+    const renderDropdown = () => {
+        return <CDropdown className="m-1 btn-group">
+            <CDropdownToggle color="primary">
+                {selectedRelease ? dropdownButtonTitle.current : "Select Release"}
+            </CDropdownToggle>
+            <CDropdownMenu placement="right">
+                <CDropdownItem header>Select Release </CDropdownItem>
+                {releaseIds.map((rel, idx) => {
+                    return (
+                        <CDropdownItem onClick={() => onDropdownItemClick(idx, rel)}>{rel}</CDropdownItem>
+                    )
+                })}
+            </CDropdownMenu>
+        </CDropdown>
+    }
+
+    const renderDetailView = () => {
+        const MAX_GRAPH_ELEMENTS = 20;
+        if (qualityLevels.length > 0) {
             const datasets = getDatasets(qualityLevels);
-
-            return (
-                <CCardBody>
-                    <CChartLine
-                        style={{height: '300px', marginTop: '40px'}}
-                        datasets={datasets.slice(0, MAX_GRAPH_ELEMENTS)}
-                        labels={releaseIds.slice(0, MAX_GRAPH_ELEMENTS)}
-                        options={defaultOptions}
-                    />
-                </CCardBody>
+            const getBadge = (qualityLevel) => {
+                if (qualityLevel >= 0.75) {
+                    return "success";
+                } else if (qualityLevel >= 0.5) {
+                    return 'warning';
+                } else if (qualityLevel < 0.5) {
+                    return "danger";
+                } else {
+                    return "info";
+                }
+            }
+            const qualityLevel = selectedRelease?.qualityLevel;
+            return (<>
+                    <CCardBody>
+                        <CChartLine
+                            style={{height: '300px', marginTop: '40px'}}
+                            datasets={datasets.slice(0, MAX_GRAPH_ELEMENTS)}
+                            labels={releaseIds.slice(0, MAX_GRAPH_ELEMENTS)}
+                            options={defaultOptions}
+                        />
+                    </CCardBody>
+                    <hr/>
+                    <CCardBody>
+                        <CRow>
+                            <CCol xs={12} sm={8} lg={9}>
+                                {renderDropdown()}
+                            </CCol>
+                            {selectedRelease
+                             ? <CCol xs={12} sm={4} lg={3}>
+                                 <div style={{marginTop: "4px"}}>
+                                     <CBadge color={getBadge(qualityLevel)}>
+                                         <div style={{fontSize: "medium", padding: "7px"}}>
+                                             Quality Level: {qualityLevel * 100}%
+                                         </div>
+                                     </CBadge>
+                                 </div>
+                             </CCol>
+                             : null}
+                        </CRow>
+                    </CCardBody>
+                </>
             );
         }
 

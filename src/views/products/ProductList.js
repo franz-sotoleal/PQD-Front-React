@@ -94,7 +94,7 @@ export const ProductList = () => {
                                 return "info";
                             }
                         }
-                        const qualityLevel = item.releaseInfo?.[0]?.qualityLevel;
+                        const qualityLevel = item.releaseInfo?.[item.releaseInfo.length - 1]?.qualityLevel;
                         return (
                             <td>
                                 <CBadge color={getBadge(qualityLevel)}>
