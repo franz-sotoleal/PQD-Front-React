@@ -1,6 +1,6 @@
 import {
-    CAlert, CBadge, CCard, CCardBody, CCardHeader, CCol, CDropdown, CDropdownItem, CDropdownMenu, CDropdownToggle,
-    CLink, CListGroup, CListGroupItem, CRow, CTabContent, CTabPane, CTooltip
+    CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CCol, CCollapse, CDropdown, CDropdownItem, CDropdownMenu,
+    CDropdownToggle, CLink, CListGroup, CListGroupItem, CRow, CTabContent, CTabPane, CTooltip
 } from "@coreui/react";
 import React, {useEffect, useRef, useState} from "react";
 import {CChartLine} from "@coreui/react-chartjs";
@@ -79,6 +79,7 @@ export const Dashboard = (props) => {
     const [selectedRelease, setSelectedRelease] = useState(undefined);
     const dropdownButtonTitle = useRef();
     const [activeTab, setActiveTab] = useState(0);
+    const [issueAccordion, setIssueAccordion] = useState([]);
 
     const renderLoader = () => {
         return <CCardBody align="center">
@@ -168,6 +169,12 @@ export const Dashboard = (props) => {
                 })}
             </CDropdownMenu>
         </CDropdown>
+    }
+
+    const onIssueAccordionClick = (sprintId) => {
+        issueAccordion.includes(sprintId)
+        ? setIssueAccordion(issueAccordion.filter(e => e !== sprintId))
+        : setIssueAccordion((prev) => [...prev, sprintId])
     }
 
     const renderDetailView = () => {
@@ -361,11 +368,58 @@ export const Dashboard = (props) => {
                                                                  <CCol xs="3">
                                                                      <a target="_blank"
                                                                         href={sprint.browserUrl}>
-                                                                         Open Jira
-                                                                         <CIcon name="cil-external-link"/>
+                                                                         <small>
+                                                                             {"Open In Jira "}
+                                                                             <CIcon name="cil-external-link"/>
+                                                                         </small>
                                                                      </a>
                                                                  </CCol>
                                                              </CRow>
+
+                                                             <hr/>
+
+                                                             {sprint.issues.length > 0
+                                                              ? <CCard className="mb-0">
+                                                                  <CCardHeader id="headingOne">
+                                                                      <CButton
+                                                                          block
+                                                                          color="link"
+                                                                          className="text-left m-0 p-0"
+                                                                          onClick={() => onIssueAccordionClick(
+                                                                              sprint.id)}>
+                                                                          <h5 className="m-0 p-0">
+                                                                              <CIcon name={issueAccordion.includes(
+                                                                                  sprint.id) ? "cil-chevron-bottom"
+                                                                                             : "cil-chevron-top"}/>
+                                                                              {" "}Issues in {sprint.name}
+                                                                          </h5>
+                                                                      </CButton>
+                                                                  </CCardHeader>
+                                                                  <CCollapse show={issueAccordion.includes(sprint.id)}>
+                                                                      <CCardBody>
+                                                                          {sprint.issues.map(issue => {
+                                                                              return (<CListGroup accent>
+                                                                                  <CListGroupItem>
+                                                                                      <a target="_blank"
+                                                                                         href={issue.browserUrl}>
+                                                                                          <img
+                                                                                              src={issue.fields.issueType.iconUrl}/> {issue.key}
+                                                                                          {" "}
+                                                                                          <small>
+                                                                                              {"Open In Jira "}
+                                                                                              <CIcon name="cil-external-link"/>
+                                                                                          </small>
+
+                                                                                      </a>
+
+                                                                                  </CListGroupItem>
+                                                                              </CListGroup>)
+                                                                          })}
+                                                                      </CCardBody>
+                                                                  </CCollapse>
+                                                              </CCard>
+
+                                                              : null}
                                                          </CListGroupItem>
                                                      })}
 
