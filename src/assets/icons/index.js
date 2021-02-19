@@ -17,8 +17,8 @@ import {
     cilLocationPin, cilLockLocked, cilLockUnlocked, cilMagnifyingGlass, cilMap, cilMoon, cilNotes, cilOptions,
     cilPaperclip, cilPaperPlane, cilPencil, cilPeople, cilPhone, cilPlus, cilPrint, cilPuzzle, cilRss, cilSave,
     cilScrubber, cilSettings, cilShare, cilShareAll, cilShareBoxed, cilShieldAlt, cilSmoke, cilSpeech, cilSpeedometer,
-    cilSpreadsheet, cilStar, cilSun, cilTags, cilTask, cilTrash, cilUnderline, cilUser, cilUserFemale, cilUserFollow,
-    cilUserUnfollow, cilWarning, cilX, cilXCircle
+    cilSpreadsheet, cilStar, cilSun, cilTags, cilTask, cilTerminal, cilTrash, cilUnderline, cilUser, cilUserFemale,
+    cilUserFollow, cilUserUnfollow, cilWarning, cilX, cilXCircle
 } from '@coreui/icons'
 
 export const icons = Object.assign({}, {
@@ -30,6 +30,7 @@ export const icons = Object.assign({}, {
     cilRss,
     cibRss,
     cibSkyliner,
+    cilTerminal,
     cibJira,
     cilClock,
     cilSmoke,

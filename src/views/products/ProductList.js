@@ -77,7 +77,7 @@ export const ProductList = () => {
                     (item) => {
                         return (
                             <td>
-                                <b>{item.name}</b>
+                                <CIcon name="cil-terminal"/> <b>{item.name}</b>
                             </td>
                         )
                     },

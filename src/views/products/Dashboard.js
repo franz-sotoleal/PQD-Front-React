@@ -11,6 +11,7 @@ import {Loader} from "../common/Loader";
 import {Redirect, Switch} from "react-router-dom";
 import {getStyle, hexToRgba} from "@coreui/utils";
 import CIcon from "@coreui/icons-react";
+import AddProductModal from "./AddProductModal";
 
 const brandInfo = getStyle('info') || '#20a8d8'
 
@@ -80,6 +81,7 @@ export const Dashboard = (props) => {
     const dropdownButtonTitle = useRef();
     const [activeTab, setActiveTab] = useState(0);
     const [issueAccordion, setIssueAccordion] = useState([]);
+    const [modal, setModal] = useState(false);
 
     const renderLoader = () => {
         return <CCardBody align="center">
@@ -212,8 +214,30 @@ export const Dashboard = (props) => {
                 const minutes = time % 60;
                 return hours > 0 ? hours + "h " + minutes + "min" : minutes + "min";
             };
+
             const qualityLevel = selectedRelease?.qualityLevel;
+
             return (<>
+                    <CCardBody>
+                        <CRow>
+                            <CCol xs="6" sm="8" md="9" lg="10">
+                                <div style={{fontSize: "medium"}}>
+                                    <CIcon name="cil-terminal"/> {selectedProduct.name}
+                                </div>
+                            </CCol>
+                            <CCol>
+                                <div className="text-right">
+                                    <CButton color="dark"
+                                             variant="ghost"
+                                             block
+                                             onClick={() => setModal(!modal)}>
+                                        {" Product Settings "}
+                                        <CIcon name="cil-settings"/>
+                                    </CButton>
+                                </div>
+                            </CCol>
+                        </CRow>
+                    </CCardBody>
                     <CCardBody>
                         <CChartLine
                             style={{height: '300px', marginTop: '40px'}}
@@ -469,6 +493,7 @@ export const Dashboard = (props) => {
     return (
         <CCard>
             {renderBody()}
+            <AddProductModal setState={setModal} state={modal}/>
         </CCard>
     );
 }
