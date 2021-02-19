@@ -1,11 +1,12 @@
 import {
-    CAlert, CButton, CCard, CCardBody, CCardHeader, CCol, CCollapse, CForm, CInput, CInputGroup, CInputGroupPrepend,
-    CInputGroupText, CInvalidFeedback, CModal, CModalBody, CModalFooter, CModalHeader, CModalTitle, CRow, CSwitch
+    CAlert, CButton, CCard, CCardBody, CCardHeader, CCol, CCollapse, CForm, CFormGroup, CInput, CInputCheckbox,
+    CInputGroup, CInputGroupPrepend, CInputGroupText, CInvalidFeedback, CLabel, CModal, CModalBody, CModalFooter,
+    CModalHeader, CModalTitle, CRow, CSwitch
 } from "@coreui/react";
-import React, {useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import CIcon from "@coreui/icons-react";
 import {
-    saveProduct, testJiraApiConnection, testSonarqubeApiConnection, triggerReleaseInfoCollection
+    saveProduct, testJiraApiConnection, testSonarqubeApiConnection, triggerReleaseInfoCollection, updateProduct
 } from "../../utils/product-service";
 import {useUserContext} from "../../context/UserContextProvider";
 import {renderInputHelper} from "../common/FormHelper";
@@ -13,9 +14,12 @@ import {Loader} from "../common/Loader";
 import config from "../../config/config.json";
 import {useHistory} from "react-router-dom";
 
-const AddProductModal = ({state, setState}) => {
+// type: "add" | "modify"; product: Product | undefined
+// If type is "add", then no product prop is required, otherwise pass product prop as well
+const AddProductModal = ({state, setState, type, product}) => {
 
     const [name, setName] = useState("");
+    const [generateNewToken, setGenerateNewToken] = useState(false);
 
     // SQ info
     const [sqBaseUrl, setSqBaseUrl] = useState("");
@@ -45,11 +49,28 @@ const AddProductModal = ({state, setState}) => {
     const [triggerRequestLoading, setTriggerRequestLoading] = useState(false);
     const [triggerRequestResStatus, setTriggerRequestResStatus] = useState("");
 
-    const [accordion, setAccordion] = useState(2);
+    const [accordion, setAccordion] = useState(-1);
 
     // Context
     const {getUserInfo, setUserInfo} = useUserContext();
     const history = useHistory();
+
+    useEffect(() => {
+        const isModifyingModal = product && type === "modify";
+        if (isModifyingModal) {
+            setName(product.name);
+            setSqBaseUrl(product.sonarqubeInfo?.baseUrl);
+            setSqComponentName(product.sonarqubeInfo?.componentName);
+            setSqApiToken(product.sonarqubeInfo?.token);
+            setJiraBaseUrl(product.jiraInfo?.baseUrl);
+            setJiraBoardId(product.jiraInfo?.boardId);
+            setJiraUserEmail(product.jiraInfo?.userEmail);
+            setJiraApiToken(product.jiraInfo?.token);
+
+            setSonarqubeEnabled(false);
+            setJiraEnabled(false);
+        }
+    }, [product])
 
     const logOut = () => {
         setUserInfo(undefined);
@@ -113,6 +134,12 @@ const AddProductModal = ({state, setState}) => {
             && (sonarqubeEnabled && sqDataExists() || !sonarqubeEnabled);
     }
 
+    const updateButtonEnabled = () => {
+        return name !== "" && nameValid()
+            && (jiraDataExists() && product.jiraInfo || !product.jiraInfo)
+            && (sqDataExists() && product.sonarqubeInfo || !product.sonarqubeInfo);
+    }
+
     const testSqConnection = () => {
         if (sqDataExists()) {
             setSonarqubeConnectionLoading(true);
@@ -167,7 +194,40 @@ const AddProductModal = ({state, setState}) => {
             });
     }
 
-    const save = () => {
+    const refresh = () => {
+        window.location.reload();
+    }
+
+    const getUpdateRequestBody = () => {
+        const requestBody = {
+            generateNewToken: generateNewToken,
+            product: {
+                id: product.id,
+                name: name,
+                token: product.token
+            }
+        };
+
+        if (sonarqubeEnabled) {
+            requestBody.product.sonarqubeInfo = {
+                baseUrl: sqBaseUrl,
+                componentName: sqComponentName,
+                token: sqApiToken
+            };
+        }
+
+        if (jiraEnabled) {
+            requestBody.product.jiraInfo = {
+                baseUrl: jiraBaseUrl,
+                boardId: jiraBoardId,
+                userEmail: jiraUserEmail,
+                token: jiraApiToken
+            };
+        }
+        return requestBody;
+    }
+
+    const getSaveRequestBody = () => {
         const userId = getUserInfo().userId;
 
         if (!userId) {
@@ -196,15 +256,34 @@ const AddProductModal = ({state, setState}) => {
                 token: jiraApiToken
             };
         }
+        return requestBody;
+    }
+
+    const save = () => {
+        const requestBody = getSaveRequestBody();
         setProductSaving(true);
         saveProduct(getUserInfo().jwt, requestBody)
             .then(res => {
-                console.log(res);
                 setSavedProduct(res);
             })
             .catch(err => console.error(err))// TODO show error message on failure
             .finally(() => {
                 setProductSaving(false);
+                setAccordion(2);
+            });
+    }
+
+    const update = () => {
+        const requestBody = getUpdateRequestBody();
+        setProductSaving(true);
+        updateProduct(getUserInfo().jwt, requestBody, product.id)
+            .then(res => {
+                setSavedProduct(res);
+            })
+            .catch(err => console.error(err))// TODO show error message on failure
+            .finally(() => {
+                setProductSaving(false);
+                setAccordion(2);
             });
     }
 
@@ -212,31 +291,250 @@ const AddProductModal = ({state, setState}) => {
         return <Loader disableLoaderText={disableLoaderText || true} className="text-center"/>;
     };
 
-    const messagingUrl = `${config.pqdApiBaseUrl}/messaging/trigger?productId=${savedProduct?.id}`;
-    const token = savedProduct?.token;
+    const isModifyingModal = product && type === "modify";
+    const messagingUrl = isModifyingModal && !savedProduct
+                         ? `${config.pqdApiBaseUrl}/messaging/trigger?productId=${product?.id}`
+                         : `${config.pqdApiBaseUrl}/messaging/trigger?productId=${savedProduct?.id}`;
+    const token = isModifyingModal && !savedProduct
+                  ? product.token
+                  : savedProduct?.token;
     const encryptedToken = btoa(token + ":");
+
     const authorizationHeaderValue = "Basic " + encryptedToken;
+
+    const renderRequestExamples = () => {
+        return <CCard className="mb-0">
+            <CCardHeader id="headingTwo">
+                <CButton
+                    block
+                    color="link"
+                    className="text-left m-0 p-0"
+                    onClick={() => setAccordion(accordion === 1 ? null : 1)}
+                >
+                    <h5 className="m-0 p-0">
+                        <CIcon name={accordion !== 1 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
+                        {" "}Request examples
+                    </h5>
+                </CButton>
+            </CCardHeader>
+            <CCollapse show={accordion === 1}>
+                <CCardBody>
+                    Here you can see three example requests of how to make a valid request with
+                    authorization header to the triggering endpoint. These examples should help you
+                    to implement the triggering request into your pipeline. The triggering request
+                    should run after all other tools on the pipeline. For example, Sonarqube
+                    analysis must be finished before making the triggering request.
+                    <br/>
+                    <hr/>
+                    <h6>Javascript Fetch:</h6>
+                    <code>const myHeaders = new Headers();</code>
+                    <br/>
+                    <br/>
+                    <code>
+                        myHeaders.append("Authorization", "{authorizationHeaderValue}");
+                    </code>
+                    <br/>
+                    <br/>
+                    <code>{"const requestOptions = \{method: 'POST', headers: myHeaders, redirect: 'follow'\};"}</code>
+                    <br/>
+                    <br/>
+                    <code>fetch("{messagingUrl}", requestOptions)</code>
+                    <br/>
+                    <code>.then(response => response.text())</code>
+                    <br/>
+                    <code>.then(result => console.log(result))</code>
+                    <br/>
+                    <code>.catch(error => console.log('error', error))</code>
+                    <hr/>
+
+                    <h6>Python Requests:</h6>
+                    <code>import requests</code>
+                    <br/>
+                    <br/>
+                    <code>
+                        url = "{messagingUrl}"
+                    </code>
+                    <br/>
+                    <code>payload = {"{" + "}"}</code>
+                    <br/>
+                    <code>{"headers = {"}
+                        {"'Authorization': '" + authorizationHeaderValue + "'}"}
+                    </code>
+                    <br/>
+                    <br/>
+                    <code>response = requests.request("POST", url, headers=headers,
+                          data=payload)</code>
+                    <br/>
+                    <code>print(response.text)</code>
+                    <hr/>
+
+                    <h6>cURL:</h6>
+                    <code>curl --location --request POST '{messagingUrl}' --header
+                          'Authorization: {authorizationHeaderValue}'</code>
+
+                </CCardBody>
+            </CCollapse>
+        </CCard>;
+    };
+
+    const renderRequestInstructions = () => {
+        return <CCard className="mb-0">
+            <CCardHeader id="headingOne">
+                <CButton
+                    block
+                    color="link"
+                    className="text-left m-0 p-0"
+                    onClick={() => setAccordion(accordion === 0 ? null : 0)}
+                >
+                    <h5 className="m-0 p-0">
+                        <CIcon name={accordion !== 0 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
+                        {" "}How to do basic auth
+                    </h5>
+                </CButton>
+            </CCardHeader>
+            <CCollapse show={accordion === 0}>
+                <CCardBody>
+                    The endpoint requires basic authentication with base64 encrypted token:
+                    <ul>
+                        <li>In Postman, simply put the token to the username field and postman does
+                            the rest
+                        </li>
+                        <li>If sending by code (from your pipeline for example), then</li>
+                        <ul>
+                            <li>Add colon ':' to the end of the token</li>
+                            <li>Encrypt the token to Base64</li>
+                            <ul>
+                                <li>Javascript encrypting example: btoa("your_product_token:"))</li>
+                            </ul>
+                            <li>Add the encrypted token to authorization header</li>
+                            <ul>
+                                <li>Add word "Basic" before the token</li>
+                                <ul>
+                                    <li>Example: "Basic ODI1N2N..."</li>
+                                </ul>
+                            </ul>
+                        </ul>
+                    </ul>
+                </CCardBody>
+            </CCollapse>
+        </CCard>;
+    };
+
+    const renderSavedProductDetails = () => {
+        const prod = product && !savedProduct ? product : savedProduct;
+        return <CCard className="mb-0">
+            <CCardHeader id="headingThree">
+                <CButton
+                    block
+                    color="link"
+                    className="text-left m-0 p-0"
+                    onClick={() => setAccordion(accordion === 2 ? null : 2)}
+                >
+                    <h5 className="m-0 p-0">
+                        <CIcon name={accordion !== 2 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
+                        {" "}Specified tools info
+                    </h5>
+                </CButton>
+            </CCardHeader>
+            <CCollapse show={accordion === 2}>
+                <CCardBody>
+                    {prod?.sonarqubeInfo
+                     ? <>
+                         <h6>Sonarqube</h6>
+                         <CRow>
+                             <CCol xs="4">
+                                 Base url:
+                             </CCol>
+                             <CCol xs="8">
+                                 {prod.sonarqubeInfo?.baseUrl}
+                             </CCol>
+                         </CRow>
+                         <CRow>
+                             <CCol xs="4">
+                                 <p>Component:</p>
+                             </CCol>
+                             <CCol xs="8">
+                                 {prod.sonarqubeInfo?.componentName}
+                             </CCol>
+                         </CRow>
+                         <CRow>
+                             <CCol xs="4">
+                                 <p>Token:</p>
+                             </CCol>
+                             <CCol xs="8">
+                                 {prod.sonarqubeInfo?.token}
+                             </CCol>
+                         </CRow>
+                         <br/>
+                     </>
+                     : null
+                    }
+                    {prod?.jiraInfo
+                     ? <>
+                         <h6>Jira</h6>
+                         <CRow>
+                             <CCol xs="4">
+                                 Base url:
+                             </CCol>
+                             <CCol xs="8">
+                                 {prod.jiraInfo?.baseUrl}
+                             </CCol>
+                         </CRow>
+                         <CRow>
+                             <CCol xs="4">
+                                 Board id:
+                             </CCol>
+                             <CCol xs="8">
+                                 {prod.jiraInfo?.boardId}
+                             </CCol>
+                         </CRow>
+                         <CRow>
+                             <CCol xs="4">
+                                 <p>Token:</p>
+                             </CCol>
+                             <CCol xs="8">
+                                 {prod.jiraInfo?.token}
+                             </CCol>
+                         </CRow>
+                     </>
+                     : null
+                    }
+                </CCardBody>
+            </CCollapse>
+        </CCard>
+    }
 
     return (
         <CModal
             show={state}
             onClose={() => setState(!state)}
-            color="info"
-        >
+            color={isModifyingModal ? "warning" : "info"}>
+
             <CModalHeader closeButton>
-                <CModalTitle><CIcon name="cil-library-add"/> Add New Product</CModalTitle>
+                <CModalTitle>
+                    {isModifyingModal
+                     ? <><CIcon name="cil-settings"/> {"Update Product"}</>
+                     : <><CIcon name="cil-library-add"/> Add New Product</>}
+                </CModalTitle>
             </CModalHeader>
             <CModalBody>
                 <CCollapse show={savedProduct && !productSaving}>
                     <CAlert color="success">
-                        <h4 className="alert-heading">{savedProduct?.name} saved successfully!</h4>
+                        <h4 className="alert-heading">{savedProduct?.name} {isModifyingModal ? "updated" : "saved"} successfully!</h4>
                         <hr/>
-                        <p>
-                            The product has been saved successfully and is ready to receive information from the{" "}
-                            specified tools. To trigger information collection from the tools, make a post request to
-                            the{" "}
-                            following url:
-                        </p>
+                        {isModifyingModal
+                        ? <p>
+                             The product has been updated successfully. To trigger information collection from the tools, make a post request to
+                             the{" "}
+                             following url:
+                         </p>
+                        : <p>
+                             The product has been saved successfully and is ready to receive information from the{" "}
+                             specified tools. To trigger information collection from the tools, make a post request to
+                             the{" "}
+                             following url:
+                         </p>}
+
 
                         <CCard>
                             <CCardBody>
@@ -253,7 +551,8 @@ const AddProductModal = ({state, setState}) => {
                         </CCard>
                     </CAlert>
                     <hr/>
-                    <p>You can trigger the first release info collection with the button below. The request is
+
+                    <p>You can trigger the release info collection with the button below. The request is
                        asynchronous - successful message means that the API has received the request and has
                        started working on it. Note that the button can
                        be pressed once and the collection retrieves the information from the tools at the current
@@ -283,211 +582,33 @@ const AddProductModal = ({state, setState}) => {
 
                     <CCardBody>
                         <div id="accordion">
-                            <CCard className="mb-0">
-                                <CCardHeader id="headingThree">
-                                    <CButton
-                                        block
-                                        color="link"
-                                        className="text-left m-0 p-0"
-                                        onClick={() => setAccordion(accordion === 2 ? null : 2)}
-                                    >
-                                        <h5 className="m-0 p-0">
-                                            <CIcon name={accordion !== 2 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
-                                            {" "}Specified tools
-                                        </h5>
-                                    </CButton>
-                                </CCardHeader>
-                                <CCollapse show={accordion === 2}>
-                                    <CCardBody>
-                                        {savedProduct?.sonarqubeInfo
-                                         ? <>
-                                             <h6>Sonarqube</h6>
-                                             <CRow>
-                                                 <CCol xs="4">
-                                                     Base url:
-                                                 </CCol>
-                                                 <CCol xs="8">
-                                                     {savedProduct.sonarqubeInfo?.baseUrl}
-                                                 </CCol>
-                                             </CRow>
-                                             <CRow>
-                                                 <CCol xs="4">
-                                                     <p>Component:</p>
-                                                 </CCol>
-                                                 <CCol xs="8">
-                                                     {savedProduct.sonarqubeInfo?.componentName}
-                                                 </CCol>
-                                             </CRow>
-                                             <CRow>
-                                                 <CCol xs="4">
-                                                     <p>Token:</p>
-                                                 </CCol>
-                                                 <CCol xs="8">
-                                                     {savedProduct.sonarqubeInfo?.token}
-                                                 </CCol>
-                                             </CRow>
-                                             <br/>
-                                         </>
-                                         : null
-                                        }
-                                        {savedProduct?.jiraInfo
-                                         ? <>
-                                             <h6>Jira</h6>
-                                             <CRow>
-                                                 <CCol xs="4">
-                                                     Base url:
-                                                 </CCol>
-                                                 <CCol xs="8">
-                                                     {savedProduct.jiraInfo?.baseUrl}
-                                                 </CCol>
-                                             </CRow>
-                                             <CRow>
-                                                 <CCol xs="4">
-                                                     Board id:
-                                                 </CCol>
-                                                 <CCol xs="8">
-                                                     {savedProduct.jiraInfo?.boardId}
-                                                 </CCol>
-                                             </CRow>
-                                             <CRow>
-                                                 <CCol xs="4">
-                                                     <p>Token:</p>
-                                                 </CCol>
-                                                 <CCol xs="8">
-                                                     {savedProduct.jiraInfo?.token}
-                                                 </CCol>
-                                             </CRow>
-                                         </>
-                                         : null
-                                        }
-                                    </CCardBody>
-                                </CCollapse>
-                            </CCard>
-                            <CCard className="mb-0">
-                                <CCardHeader id="headingOne">
-                                    <CButton
-                                        block
-                                        color="link"
-                                        className="text-left m-0 p-0"
-                                        onClick={() => setAccordion(accordion === 0 ? null : 0)}
-                                    >
-                                        <h5 className="m-0 p-0">
-                                            <CIcon name={accordion !== 0 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
-                                            {" "}How to do basic auth
-                                        </h5>
-                                    </CButton>
-                                </CCardHeader>
-                                <CCollapse show={accordion === 0}>
-                                    <CCardBody>
-                                        The endpoint requires basic authentication with base64 encrypted token:
-                                        <ul>
-                                            <li>In Postman, simply put the token to the username field and postman does
-                                                the rest
-                                            </li>
-                                            <li>If sending by code (from your pipeline for example), then</li>
-                                            <ul>
-                                                <li>Add colon ':' to the end of the token</li>
-                                                <li>Encrypt the token to Base64</li>
-                                                <ul>
-                                                    <li>Javascript encrypting example: btoa("your_product_token:"))</li>
-                                                </ul>
-                                                <li>Add the encrypted token to authorization header</li>
-                                                <ul>
-                                                    <li>Add word "Basic" before the token</li>
-                                                    <ul>
-                                                        <li>Example: "Basic ODI1N2N..."</li>
-                                                    </ul>
-                                                </ul>
-                                            </ul>
-                                        </ul>
-                                    </CCardBody>
-                                </CCollapse>
-                            </CCard>
-                            <CCard className="mb-0">
-                                <CCardHeader id="headingTwo">
-                                    <CButton
-                                        block
-                                        color="link"
-                                        className="text-left m-0 p-0"
-                                        onClick={() => setAccordion(accordion === 1 ? null : 1)}
-                                    >
-                                        <h5 className="m-0 p-0">
-                                            <CIcon name={accordion !== 1 ? "cil-chevron-bottom" : "cil-chevron-top"}/>
-                                            {" "}Request examples
-                                        </h5>
-                                    </CButton>
-                                </CCardHeader>
-                                <CCollapse show={accordion === 1}>
-                                    <CCardBody>
-                                        Here you can see three example requests of how to make a valid request with
-                                        authorization header to the triggering endpoint. These examples should help you
-                                        to implement the triggering request into your pipeline. The triggering request
-                                        should run after all other tools on the pipeline. For example, Sonarqube
-                                        analysis must be finished before making the triggering request.
-                                        <br/>
-                                        <hr/>
-                                        <h6>Javascript Fetch:</h6>
-                                        <code>const myHeaders = new Headers();</code>
-                                        <br/>
-                                        <br/>
-                                        <code>
-                                            myHeaders.append("Authorization", "{authorizationHeaderValue}");
-                                        </code>
-                                        <br/>
-                                        <br/>
-                                        <code>{"const requestOptions = \{method: 'POST', headers: myHeaders, redirect: 'follow'\};"}</code>
-                                        <br/>
-                                        <br/>
-                                        <code>fetch("{messagingUrl}", requestOptions)</code>
-                                        <br/>
-                                        <code>.then(response => response.text())</code>
-                                        <br/>
-                                        <code>.then(result => console.log(result))</code>
-                                        <br/>
-                                        <code>.catch(error => console.log('error', error))</code>
-                                        <hr/>
-
-                                        <h6>Python Requests:</h6>
-                                        <code>import requests</code>
-                                        <br/>
-                                        <br/>
-                                        <code>
-                                            url = "{messagingUrl}"
-                                        </code>
-                                        <br/>
-                                        <code>payload = {"{" + "}"}</code>
-                                        <br/>
-                                        <code>{"headers = {"}
-                                            {"'Authorization': '" + authorizationHeaderValue + "'}"}
-                                        </code>
-                                        <br/>
-                                        <br/>
-                                        <code>response = requests.request("POST", url, headers=headers,
-                                              data=payload)</code>
-                                        <br/>
-                                        <code>print(response.text)</code>
-                                        <hr/>
-
-                                        <h6>cURL:</h6>
-                                        <code>curl --location --request POST '{messagingUrl}' --header
-                                              'Authorization: {authorizationHeaderValue}'</code>
-
-                                    </CCardBody>
-                                </CCollapse>
-                            </CCard>
+                            {renderSavedProductDetails()}
+                            {renderRequestInstructions()}
+                            {renderRequestExamples()}
                         </div>
                     </CCardBody>
 
-                    <CAlert color="info">
-                        <b>Log Out</b> and <b>Log In</b> to see the newly added product in the product list. If you have
-                                       read the information above, then
-                        <CButton color="primary"
-                                 variant="ghost"
-                                 block
-                                 onClick={() => logOut()}>
-                            <CIcon name="cil-account-logout"/> Log Out Now
-                        </CButton>
-                    </CAlert>
+                    {isModifyingModal
+                    ? <CAlert color="info">
+                         <b>Refresh</b> the page to load the updated information.
+                         <CButton color="primary"
+                                  variant="ghost"
+                                  block
+                                  onClick={() => refresh()}>
+                             <CIcon name="cil-reload"/> Refresh Now
+                         </CButton>
+                     </CAlert>
+                    : <CAlert color="info">
+                         <b>Log Out</b> and <b>Log In</b> to see the newly added product in the product list. If you have
+                                        read the information above, then
+                         <CButton color="primary"
+                                  variant="ghost"
+                                  block
+                                  onClick={() => logOut()}>
+                             <CIcon name="cil-account-logout"/> Log Out Now
+                         </CButton>
+                     </CAlert>}
+
 
                 </CCollapse>
                 <CCollapse show={productSaving}>
@@ -495,8 +616,41 @@ const AddProductModal = ({state, setState}) => {
                 </CCollapse>
                 <CCollapse show={!productSaving && !savedProduct}>
                     <CForm>
-                        <p className="text-muted">Add new product and start collecting information from Sonarqube and
-                                                  Jira</p>
+                        {isModifyingModal
+                         ? <>
+                             <p>
+                                 To trigger information collection from the tools, make a post request
+                                 to the following url:
+                             </p>
+
+                             <CCard>
+                                 <CCardBody>
+                                     {messagingUrl}
+                                 </CCardBody>
+                             </CCard>
+
+                             <p>The post request requires basic auth with the following token:</p>
+
+                             <CCard>
+                                 <CCardBody>
+                                     {token}
+                                 </CCardBody>
+                             </CCard>
+                             {renderSavedProductDetails()}
+                             {renderRequestInstructions()}
+                             {renderRequestExamples()}
+                             <br/>
+                             <hr/>
+
+                         </>
+                         : null}
+
+
+                            {isModifyingModal
+                             ? <><h5>Update Product Info</h5><br/></>
+                             : <p className="text-muted">Add new product and start collecting information from Sonarqube and Jira</p>}
+
+
                         <CInputGroup className="mb-3">
                             <CInputGroupPrepend>
                                 <CInputGroupText>
@@ -513,21 +667,35 @@ const AddProductModal = ({state, setState}) => {
                             <CInvalidFeedback>Name too short</CInvalidFeedback>
                         </CInputGroup>
 
+                        {isModifyingModal
+                         ? <CCardBody>
+                             <CFormGroup row>
+                                     <CFormGroup variant="custom-checkbox" inline>
+                                         <CInputCheckbox custom id="inline-radio1" name="inline-radios" value="option1" onChange={() => setGenerateNewToken(true)}/>
+                                         <CLabel variant="custom-checkbox" htmlFor="inline-radio1">Generate New Token</CLabel>
+                                     </CFormGroup>
+                             </CFormGroup>
+                         </CCardBody>
+                         : null}
+
                         <CRow>
                             <CCol xs="10">
                                 <h5>Sonarqube</h5>
                             </CCol>
                             <CCol xs="2">
-                                <CRow className="text-right">
-                                    <CSwitch className={'mx-1 cil-align-right'} shape={'pill'} color={'info'}
-                                             labelOn={'\u2713'}
-                                             labelOff={'\u2715'}
-                                             defaultChecked onChange={() => setSonarqubeEnabled(!sonarqubeEnabled)}/>
-                                </CRow>
+                                {isModifyingModal
+                                ? null
+                                :<CRow className="text-right">
+                                     <CSwitch className={'mx-1 cil-align-right'} shape={'pill'}
+                                              color={isModifyingModal ? "warning" : "info"}
+                                              labelOn={'\u2713'}
+                                              labelOff={'\u2715'}
+                                              defaultChecked onChange={() => setSonarqubeEnabled(!sonarqubeEnabled)}/>
+                                 </CRow>}
                             </CCol>
                         </CRow>
 
-                        <CCollapse show={sonarqubeEnabled}>
+                        <CCollapse show={sonarqubeEnabled || isModifyingModal && product.sonarqubeInfo}>
                             <p>Read more about how to{" "}
                                 <a target="_blank"
                                    href="https://docs.sonarqube.org/latest/user-guide/user-token/">
@@ -589,7 +757,7 @@ const AddProductModal = ({state, setState}) => {
 
                             {sonarqubeConnectionLoading
                              ? renderLoader()
-                             : <CButton disabled={!(sonarqubeEnabled && sqDataExists())}
+                             : <CButton disabled={!(sonarqubeEnabled && sqDataExists() || sqDataExists() && product.sonarqubeInfo)}
                                         color="primary"
                                         variant="ghost"
                                         block
@@ -612,15 +780,18 @@ const AddProductModal = ({state, setState}) => {
                                 <h5>Jira</h5>
                             </CCol>
                             <CCol xs="2">
-                                <CRow className="text-right">
-                                    <CSwitch className={'mx-1'} shape={'pill'} color={'info'} labelOn={'\u2713'}
-                                             labelOff={'\u2715'}
-                                             defaultChecked onChange={() => setJiraEnabled(!jiraEnabled)}/>
-                                </CRow>
+                                {isModifyingModal
+                                ? null
+                                : <CRow className="text-right">
+                                     <CSwitch className={'mx-1'} shape={'pill'}
+                                              color={isModifyingModal ? "warning" : "info"} labelOn={'\u2713'}
+                                              labelOff={'\u2715'}
+                                              defaultChecked onChange={() => setJiraEnabled(!jiraEnabled)}/>
+                                 </CRow>}
                             </CCol>
                         </CRow>
 
-                        <CCollapse show={jiraEnabled}>
+                        <CCollapse show={jiraEnabled || isModifyingModal && product.jiraInfo}>
                             <p>Read more about how to{" "}
                                 <a target="_blank"
                                    href="https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/">
@@ -700,7 +871,7 @@ const AddProductModal = ({state, setState}) => {
 
                             {jiraConnectionLoading
                              ? renderLoader()
-                             : <CButton disabled={!(jiraEnabled && jiraDataExists())}
+                             : <CButton disabled={!(jiraEnabled && jiraDataExists() || jiraDataExists() && product.jiraInfo)}
                                         color="primary"
                                         variant="ghost"
                                         block
@@ -726,17 +897,25 @@ const AddProductModal = ({state, setState}) => {
                               onClick={() => setState(!state)}>
                          <CIcon name="cil-ban"/> Cancel
                      </CButton>
-                     <CButton color="info"
-                              disabled={!saveButtonEnabled()}
-                              onClick={() => save()}>
-                         <CIcon name="cil-save"/> Save Product
-                     </CButton>
+                     {isModifyingModal
+                     ? <CButton color="warning"
+                                disabled={!updateButtonEnabled()}
+                                onClick={() => update()}>
+                          <CIcon name="cil-save"/> Update
+                      </CButton>
+                     : <CButton color="info"
+                                   disabled={!saveButtonEnabled()}
+                                   onClick={() => save()}>
+                              <CIcon name="cil-save"/> Save Product
+                          </CButton>}
                  </>
                  : <>
-                     <CButton color="danger"
-                              onClick={() => resetModal()}>
-                         <CIcon name="cil-x-circle"/> Reset Modal
-                     </CButton>
+                     {isModifyingModal
+                     ? null
+                     : <CButton color="danger"
+                                onClick={() => resetModal()}>
+                          <CIcon name="cil-x-circle"/> Reset Modal
+                      </CButton>}
                      <CButton color="info"
                               onClick={() => setState(!state)}>
                          <CIcon name="cil-ban"/> Close Modal

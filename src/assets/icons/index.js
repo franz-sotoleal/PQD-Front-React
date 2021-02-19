@@ -15,10 +15,10 @@ import {
     cilHome, cilInbox, cilIndentDecrease, cilIndentIncrease, cilInputPower, cilItalic, cilJustifyCenter, cilJustifyLeft,
     cilLaptop, cilLayers, cilLibrary, cilLibraryAdd, cilLightbulb, cilLink, cilList, cilListNumbered, cilListRich,
     cilLocationPin, cilLockLocked, cilLockUnlocked, cilMagnifyingGlass, cilMap, cilMoon, cilNotes, cilOptions,
-    cilPaperclip, cilPaperPlane, cilPencil, cilPeople, cilPhone, cilPlus, cilPrint, cilPuzzle, cilRss, cilSave,
-    cilScrubber, cilSettings, cilShare, cilShareAll, cilShareBoxed, cilShieldAlt, cilSmoke, cilSpeech, cilSpeedometer,
-    cilSpreadsheet, cilStar, cilSun, cilTags, cilTask, cilTerminal, cilTrash, cilUnderline, cilUser, cilUserFemale,
-    cilUserFollow, cilUserUnfollow, cilWarning, cilX, cilXCircle
+    cilPaperclip, cilPaperPlane, cilPencil, cilPeople, cilPhone, cilPlus, cilPrint, cilPuzzle, cilReload, cilRss,
+    cilSave, cilScrubber, cilSettings, cilShare, cilShareAll, cilShareBoxed, cilShieldAlt, cilSmoke, cilSpeech,
+    cilSpeedometer, cilSpreadsheet, cilStar, cilSun, cilTags, cilTask, cilTerminal, cilTrash, cilUnderline, cilUser,
+    cilUserFemale, cilUserFollow, cilUserUnfollow, cilWarning, cilX, cilXCircle
 } from '@coreui/icons'
 
 export const icons = Object.assign({}, {
@@ -31,6 +31,7 @@ export const icons = Object.assign({}, {
     cibRss,
     cibSkyliner,
     cilTerminal,
+    cilReload,
     cibJira,
     cilClock,
     cilSmoke,

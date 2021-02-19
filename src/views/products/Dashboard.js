@@ -179,6 +179,29 @@ export const Dashboard = (props) => {
         : setIssueAccordion((prev) => [...prev, sprintId])
     }
 
+    const renderDetailHeader = () => {
+        return <CCardBody>
+            <CRow>
+                <CCol xs="6" sm="8" md="9" lg="10">
+                    <div style={{fontSize: "medium"}}>
+                        <CIcon name="cil-terminal"/> {selectedProduct.name}
+                    </div>
+                </CCol>
+                <CCol>
+                    <div className="text-right">
+                        <CButton color="dark"
+                                 variant="ghost"
+                                 block
+                                 onClick={() => setModal(!modal)}>
+                            {" Product Settings "}
+                            <CIcon name="cil-settings"/>
+                        </CButton>
+                    </div>
+                </CCol>
+            </CRow>
+        </CCardBody>;
+    }
+
     const renderDetailView = () => {
         const MAX_GRAPH_ELEMENTS = 20;
         if (qualityLevels.length > 0) {
@@ -215,29 +238,12 @@ export const Dashboard = (props) => {
                 return hours > 0 ? hours + "h " + minutes + "min" : minutes + "min";
             };
 
-            const qualityLevel = selectedRelease?.qualityLevel;
+            const num = Number(selectedRelease?.qualityLevel)
+            const roundedString = num.toFixed(4);
+            const qualityLevel = Number(roundedString);
 
             return (<>
-                    <CCardBody>
-                        <CRow>
-                            <CCol xs="6" sm="8" md="9" lg="10">
-                                <div style={{fontSize: "medium"}}>
-                                    <CIcon name="cil-terminal"/> {selectedProduct.name}
-                                </div>
-                            </CCol>
-                            <CCol>
-                                <div className="text-right">
-                                    <CButton color="dark"
-                                             variant="ghost"
-                                             block
-                                             onClick={() => setModal(!modal)}>
-                                        {" Product Settings "}
-                                        <CIcon name="cil-settings"/>
-                                    </CButton>
-                                </div>
-                            </CCol>
-                        </CRow>
-                    </CCardBody>
+                    {renderDetailHeader()}
                     <CCardBody>
                         <CChartLine
                             style={{height: '300px', marginTop: '40px'}}
@@ -431,7 +437,8 @@ export const Dashboard = (props) => {
                                                                                           {" "}
                                                                                           <small>
                                                                                               {"Open In Jira "}
-                                                                                              <CIcon name="cil-external-link"/>
+                                                                                              <CIcon
+                                                                                                  name="cil-external-link"/>
                                                                                           </small>
 
                                                                                       </a>
@@ -462,6 +469,7 @@ export const Dashboard = (props) => {
 
         return (
             <CCardBody>
+                {renderDetailHeader()}
                 <CAlert color="info">
                     No release info to display. Trigger release info collection on this product to see initial
                     results
@@ -493,7 +501,7 @@ export const Dashboard = (props) => {
     return (
         <CCard>
             {renderBody()}
-            <AddProductModal setState={setModal} state={modal}/>
+            <AddProductModal setState={setModal} state={modal} type="modify" product={selectedProduct}/>
         </CCard>
     );
 }

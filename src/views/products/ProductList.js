@@ -8,9 +8,7 @@ import {useUserContext} from "../../context/UserContextProvider";
 import {useProductContext} from "../../context/ProductContextProvider";
 import {getProducts} from "../../utils/product-service";
 import {Loader} from "../common/Loader";
-import {getColor, getStyle} from "@coreui/utils";
-
-const brandInfo = getStyle('info') || '#20a8d8'
+import {getColor} from "@coreui/utils";
 
 const ComponentStates = {
     Loading: "loading",
@@ -53,7 +51,6 @@ export const ProductList = () => {
     }, []);
 
     const onRowClick = (row) => {
-        console.log(row);
         history.push(`/products/${row.id}`)
     };
 
@@ -94,7 +91,12 @@ export const ProductList = () => {
                                 return "info";
                             }
                         }
-                        const qualityLevel = item.releaseInfo?.[item.releaseInfo.length - 1]?.qualityLevel;
+
+                        const lastLevel = item.releaseInfo?.[item.releaseInfo.length - 1]?.qualityLevel;
+                        const num = Number(lastLevel)
+                        const roundedString = num.toFixed(4);
+                        const qualityLevel = Number(roundedString);
+
                         return (
                             <td>
                                 <CBadge color={getBadge(qualityLevel)}>
