@@ -279,13 +279,13 @@ export const Dashboard = (props) => {
                              <CCol xs="12" sm="4">
                                  <CListGroup id="list-tab" role="tablist">
                                      <CListGroupItem disabled>Inspect details from:</CListGroupItem>
-                                     {selectedRelease.releaseInfoSonarqube
+                                     {selectedRelease.releaseInfoSonarqube && selectedProduct.sonarqubeInfo
                                       ? <CListGroupItem onClick={() => setActiveTab(1)} action
                                                         active={activeTab === 1}>
                                           <CIcon name="cil-rss"/> Sonarqube
                                       </CListGroupItem>
                                       : null}
-                                     {selectedRelease.releaseInfoJira
+                                     {selectedRelease.releaseInfoJira && selectedProduct.jiraInfo
                                       ? <CListGroupItem onClick={() => setActiveTab(2)} action
                                                         active={activeTab === 2}>
                                           <CIcon name="cib-jira"/> Jira
