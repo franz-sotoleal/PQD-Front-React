@@ -1,5 +1,20 @@
 # Getting Started with Create React App
 
+Docker start:
+
+```
+docker build -t pqd-front-react .
+docker run -p 3000:3000 pqd-front-react
+```
+Docker start using compose:
+```
+docker-compose up -d --build
+```
+Kill containers:
+```
+docker-compose down
+```
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
