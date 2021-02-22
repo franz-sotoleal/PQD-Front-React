@@ -1,15 +1,16 @@
-import {httpGet, httpPost, httpRequestWithBasicAuth} from "./http-request";
+import {httpGet, httpPost, httpPut, httpRequestWithBasicAuth} from "./http-request";
 import config from "../config/config.json";
 
 export const getProducts = (jwt) => {
     return fetchProducts(jwt)
         .then(products => {
             const productWithReleaseInfoList = [];
-            return Promise.all(products.map(async (product, idx) => {
+            return Promise.all(products.map(async (product) => {
                 const productWithReleaseInfo = product;
                 await fetchReleaseInfo(product.id, jwt)
                     .then(releaseInfo => {
-                        productWithReleaseInfo.id = idx;
+                        productWithReleaseInfo.id = product.id;
+                        releaseInfo.sort((a, b) => a.id - b.id);
                         productWithReleaseInfo.releaseInfo = releaseInfo;
                         productWithReleaseInfoList.push(productWithReleaseInfo);
                     })
@@ -17,6 +18,7 @@ export const getProducts = (jwt) => {
                         console.error(err);
                     })
             })).then(() => {
+                productWithReleaseInfoList.sort((a, b) => a.id - b.id);
                 return productWithReleaseInfoList;
             })
         })
@@ -24,6 +26,24 @@ export const getProducts = (jwt) => {
 
 export const saveProduct = (jwt, body) => {
     return httpPost(`${config.pqdApiBaseUrl}/product/save`, body, jwt)
+        .then(res => {
+            if (res.status === 200) {
+                return {status: "OK", body: res.json()};
+            } else {
+                return {status: "Error", body: res.json()};
+            }
+        })
+        .then(data => {
+            if (data.status === "OK") {
+                return data.body;
+            } else {
+                throw new Error("Saving product failed");
+            }
+        });
+}
+
+export const updateProduct = (jwt, body, id) => {
+    return httpPut(`${config.pqdApiBaseUrl}/product/${id}/update`, body, jwt)
         .then(res => {
             if (res.status === 200) {
                 return {status: "OK", body: res.json()};

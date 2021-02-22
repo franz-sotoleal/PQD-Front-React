@@ -7,7 +7,7 @@ import routes from '../routes'
 
 const loading = (
     <div className="pt-3 text-center">
-        <div className="sk-spinner sk-spinner-pulse"></div>
+        <div className="sk-spinner sk-spinner-pulse"/>
     </div>
 )
 
@@ -18,7 +18,6 @@ const TheContent = () => {
                 <Suspense fallback={loading}>
                     <Switch>
                         {routes.map((route, idx) => {
-                            console.log(route);
                             return route.component && (
                                 <Route
                                     key={idx}

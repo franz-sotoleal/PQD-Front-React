@@ -32,7 +32,6 @@ const Login = () => {
         httpPost(`${config.pqdApiBaseUrl}/authentication/login`, body)
             .then(res => res.json())
             .then(data => {
-                console.log(data);
                 setUserInfo(data);
             })
             .catch(() => {
@@ -46,7 +45,7 @@ const Login = () => {
             <CContainer>
                 <CRow className="justify-content-center">
                     <CCol md="8">
-                        <CCardGroup >
+                        <CCardGroup>
                             <CCard className="p-4">
                                 <CCardBody className="text-center">
                                     <CForm>
@@ -81,7 +80,7 @@ const Login = () => {
                                                     onChange={value => setPassword(value.currentTarget.value)}
                                                     value={password}/>
                                         </CInputGroup>
-                                        <CRow >
+                                        <CRow>
                                             <CCol xs="12" sm="1">
                                                 <CButton color="primary" className="px-4"
                                                          onClick={() => performLogin()}>Login</CButton>
@@ -90,13 +89,14 @@ const Login = () => {
                                     </CForm>
                                 </CCardBody>
                             </CCard>
-                            <CCard className="text-white bg-primary p-4" >
+                            <CCard className="text-white bg-primary p-4">
                                 <CCardBody className="text-center">
                                     <div>
                                         <h2>Sign up</h2>
                                         <p>Register your account to get access to PQD functionality</p>
                                         <Link to="/register">
-                                            <CButton color="primary" className="mt-3" active tabIndex={-1}>Click Here To Register
+                                            <CButton color="primary" className="mt-3" active tabIndex={-1}>Click Here To
+                                                                                                           Register
                                                                                                            Now!</CButton>
                                         </Link>
                                     </div>
