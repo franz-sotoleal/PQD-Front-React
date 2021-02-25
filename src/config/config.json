@@ -1,3 +1,3 @@
 {
-  "pqdApiBaseUrl": "http://ec2-3-141-18-210.us-east-2.compute.amazonaws.com:8080"
+  "pqdApiBaseUrl": "http://ec2-3-141-18-210.us-east-2.compute.amazonaws.com:8080/api"
 }
