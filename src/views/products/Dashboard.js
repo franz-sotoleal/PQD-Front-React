@@ -228,7 +228,7 @@ export const Dashboard = (props) => {
                     return <CBadge color="success">B</CBadge>;
                 } else if (rating === 3.0) {
                     return <CBadge color="warning">C</CBadge>;
-                } else if (rating === 2.0) {
+                } else if (rating === 4.0) {
                     return <CBadge color="warning">D</CBadge>;
                 } else {
                     return <CBadge color="danger">E</CBadge>;
