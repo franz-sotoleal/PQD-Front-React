@@ -134,6 +134,11 @@ export const ProductList = () => {
                                 yAxes: [{
                                     display: false
                                 }]
+                            },
+                            elements: {
+                                line: {
+                                    tension: 0.00001
+                                }
                             }
                         };
 

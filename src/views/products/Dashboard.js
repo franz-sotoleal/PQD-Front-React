@@ -9,7 +9,7 @@ import {useProductContext} from "../../context/ProductContextProvider";
 import {getProducts} from "../../utils/product-service";
 import {Loader} from "../common/Loader";
 import {Redirect, Switch} from "react-router-dom";
-import {getStyle, hexToRgba} from "@coreui/utils";
+import {getColor, getStyle} from "@coreui/utils";
 import CIcon from "@coreui/icons-react";
 import AddProductModal from "./AddProductModal";
 
@@ -26,7 +26,7 @@ const getDatasets = (qualityLevels) => {
     return [
         {
             label: 'Quality Level',
-            backgroundColor: hexToRgba(brandInfo, 10),
+            backgroundColor: getColor("transparent"),
             borderColor: brandInfo,
             pointHoverBackgroundColor: brandInfo,
             borderWidth: 2,
@@ -64,6 +64,9 @@ const defaultOptions = {
             hitRadius: 10,
             hoverRadius: 4,
             hoverBorderWidth: 3
+        },
+        line: {
+            tension: 0.00001
         }
     }
 };
@@ -245,12 +248,15 @@ export const Dashboard = (props) => {
             return (<>
                     {renderDetailHeader()}
                     <CCardBody>
+                        <p style={{paddingLeft: "5px"}}>Quality level (0-100%)</p>
                         <CChartLine
                             style={{height: '300px', marginTop: '40px'}}
                             datasets={datasets.slice(0, MAX_GRAPH_ELEMENTS)}
                             labels={releaseIds.slice(0, MAX_GRAPH_ELEMENTS)}
                             options={defaultOptions}
                         />
+                        <p style={{paddingTop: "5px"}} className="text-center">Release time</p>
+
                     </CCardBody>
                     <hr/>
                     <CCardBody>
