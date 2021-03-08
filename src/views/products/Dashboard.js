@@ -145,8 +145,10 @@ export const Dashboard = (props) => {
 
     const getTimeFromTimestamp = (timestamp) => {
         const date = new Date(timestamp);
+        const formatedMinutes = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
+        const formatedHours = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
         return date.getDate() + ". " + date.toString().split(" ")[1] + " " + date.getFullYear() +
-            ", " + date.getHours() + ":" + date.getMinutes();
+            ", " + formatedHours + ":" + formatedMinutes;
     }
 
     const getTimeFromTimestampWithoutClock = (timestamp) => {

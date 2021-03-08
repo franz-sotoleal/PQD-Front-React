@@ -168,7 +168,7 @@ export const ProductList = () => {
 
     const renderError = () => {
         return <CAlert color="danger">
-            Loading products failed
+            Loading products failed. Try logging out and then logging in again.
         </CAlert>
     }
 
