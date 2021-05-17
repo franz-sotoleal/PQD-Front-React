@@ -2,12 +2,10 @@ import React from 'react'
 import {CDropdown, CDropdownItem, CDropdownMenu, CDropdownToggle} from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {useUserContext} from "../context/UserContextProvider";
-import {useHistory} from "react-router-dom";
 
 const TheHeaderDropdown = () => {
 
     const {getUserInfo, setUserInfo} = useUserContext();
-    const history = useHistory();
 
     const renderHello = () => {
         const firstName = getUserInfo()?.firstName;
@@ -18,7 +16,7 @@ const TheHeaderDropdown = () => {
 
     const logOut = () => {
         setUserInfo(undefined);
-        history.push("/login")
+        window.location = "/login"
     }
 
     return (

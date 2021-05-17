@@ -20,6 +20,7 @@ const Register = () => {
     const [registerFailed, setRegisterFailed] = useState(false);
     const [registerFailMessage, setRegisterFailMessage] = useState("");
     const [success, setSuccess] = useState(false)
+    const [registerRequestMade, setRegisterRequestMade] = useState(false);
     const {user} = useUserContext();
     const history = useHistory();
 
@@ -36,6 +37,7 @@ const Register = () => {
             return;
         }
         setRegisterFailed(false);
+        setRegisterRequestMade(true);
         setRegisterFailMessage("");
         const body = {};
         body["username"] = username;
@@ -64,6 +66,7 @@ const Register = () => {
                     setRegisterFailMessage(body.message);
                 }
             })
+            .finally(() => setRegisterRequestMade(false))
     }
 
     const emailValid = () => {
@@ -121,6 +124,14 @@ const Register = () => {
                                          Register failed: {registerFailMessage}
                                      </CAlert>
                                      : null}
+                                    {registerRequestMade ?
+                                     <>
+                                         <div className={`spinner-border text-primary`} role="status">
+                                             <span className="sr-only">Loading...</span>
+                                         </div>
+                                         <br/>
+                                         <br/>
+                                     </>: null}
 
                                     <CInputGroup className="mb-3">
                                         <CInputGroupPrepend>
@@ -209,6 +220,7 @@ const Register = () => {
                                     </CInputGroup>
                                     <CButton color="success"
                                              block
+                                             disabled={registerRequestMade}
                                              onClick={() => performRegister()}>Register Account</CButton>
                                 </CForm>
                             </CCardBody>

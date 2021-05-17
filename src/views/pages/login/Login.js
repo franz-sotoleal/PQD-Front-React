@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {Link, useHistory} from 'react-router-dom'
 import {
     CAlert, CButton, CCard, CCardBody, CCardGroup, CCol, CContainer, CForm, CInput, CInputGroup, CInputGroupPrepend,
@@ -15,6 +15,8 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [loginFailed, setLoginFailed] = useState(false);
     const {getUserInfo, setUserInfo} = useUserContext();
+    const listenerInitialized = useRef(false);
+    const [loginRequestMade, setLoginRequestMade] = useState(false);
     const history = useHistory();
 
     useEffect(() => {
@@ -24,7 +26,32 @@ const Login = () => {
         }
     }, [getUserInfo]);
 
+    const onPasswordChange = (value) => {
+        if (listenerInitialized.current === false) {
+            onPressEnterHack();
+            listenerInitialized.current = true;
+        }
+        setPassword(value.currentTarget.value);
+    }
+
+    const onPressEnterHack = () => {
+        // Get the input field
+        const input = document.getElementById("password-field");
+
+        // Execute a function when the user releases a key on the keyboard
+        input.addEventListener("keyup", function(event) {
+            // Number 13 is the "Enter" key on the keyboard
+            if (event.keyCode === 13) {
+                // Cancel the default action, if needed
+                event.preventDefault();
+                // Trigger the button element with a click
+                document.getElementById("login-button").click();
+            }
+        });
+    }
+
     const performLogin = () => {
+        setLoginRequestMade(true);
         setLoginFailed(false);
         const body = {};
         body["username"] = username;
@@ -32,12 +59,16 @@ const Login = () => {
         httpPost(`${config.pqdApiBaseUrl}/authentication/login`, body)
             .then(res => res.json())
             .then(data => {
+                if (!data.username || !data.userId) {
+                    throw new Error();
+                }
                 setUserInfo(data);
             })
             .catch(() => {
                 setLoginFailed(true);
                 setUserInfo(undefined);
-            });
+            })
+            .finally(() => setLoginRequestMade(false))
     }
 
     return (
@@ -51,6 +82,14 @@ const Login = () => {
                                     <CForm>
                                         <h1>Login</h1>
                                         <p className="text-muted">Sign In to your PQD account</p>
+                                        {loginRequestMade ?
+                                         <>
+                                         <div className={`spinner-border text-primary`} role="status">
+                                            <span className="sr-only">Loading...</span>
+                                        </div>
+                                             <br/>
+                                             <br/>
+                                            </>: null}
                                         {loginFailed
                                          ? <CAlert color="danger">
                                              Login failed!
@@ -75,15 +114,19 @@ const Login = () => {
                                                 </CInputGroupText>
                                             </CInputGroupPrepend>
                                             <CInput type="password"
+                                                    id="password-field"
                                                     placeholder="Password"
                                                     autoComplete="current-password"
-                                                    onChange={value => setPassword(value.currentTarget.value)}
+                                                    onChange={value => onPasswordChange(value)}
                                                     value={password}/>
                                         </CInputGroup>
                                         <CRow>
                                             <CCol xs="12" sm="1">
                                                 <CButton color="primary" className="px-4"
+                                                         disabled={loginRequestMade}
+                                                         id="login-button"
                                                          onClick={() => performLogin()}>Login</CButton>
+
                                             </CCol>
                                         </CRow>
                                     </CForm>

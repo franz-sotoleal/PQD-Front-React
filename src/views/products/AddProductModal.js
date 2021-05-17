@@ -12,7 +12,6 @@ import {useUserContext} from "../../context/UserContextProvider";
 import {renderInputHelper} from "../common/FormHelper";
 import {Loader} from "../common/Loader";
 import config from "../../config/config.json";
-import {useHistory} from "react-router-dom";
 
 // type: "add" | "modify"; product: Product | undefined
 // If type is "add", then no product prop is required, otherwise pass product prop as well
@@ -53,7 +52,6 @@ const AddProductModal = ({state, setState, type, product}) => {
 
     // Context
     const {getUserInfo, setUserInfo} = useUserContext();
-    const history = useHistory();
 
     useEffect(() => {
         const isModifyingModal = product && type === "modify";
@@ -74,7 +72,7 @@ const AddProductModal = ({state, setState, type, product}) => {
 
     const logOut = () => {
         setUserInfo(undefined);
-        history.push("/login")
+        window.location = "/login"
     }
 
     const resetModal = () => {
@@ -520,15 +518,17 @@ const AddProductModal = ({state, setState, type, product}) => {
             <CModalBody>
                 <CCollapse show={savedProduct && !productSaving}>
                     <CAlert color="success">
-                        <h4 className="alert-heading">{savedProduct?.name} {isModifyingModal ? "updated" : "saved"} successfully!</h4>
+                        <h4 className="alert-heading">{savedProduct?.name} {isModifyingModal ? "updated"
+                                                                                             : "saved"} successfully!</h4>
                         <hr/>
                         {isModifyingModal
-                        ? <p>
-                             The product has been updated successfully. To trigger information collection from the tools, make a post request to
+                         ? <p>
+                             The product has been updated successfully. To trigger information collection from the
+                             tools, make a post request to
                              the{" "}
                              following url:
                          </p>
-                        : <p>
+                         : <p>
                              The product has been saved successfully and is ready to receive information from the{" "}
                              specified tools. To trigger information collection from the tools, make a post request to
                              the{" "}
@@ -589,7 +589,7 @@ const AddProductModal = ({state, setState, type, product}) => {
                     </CCardBody>
 
                     {isModifyingModal
-                    ? <CAlert color="info">
+                     ? <CAlert color="info">
                          <b>Refresh</b> the page to load the updated information.
                          <CButton color="primary"
                                   variant="ghost"
@@ -598,8 +598,9 @@ const AddProductModal = ({state, setState, type, product}) => {
                              <CIcon name="cil-reload"/> Refresh Now
                          </CButton>
                      </CAlert>
-                    : <CAlert color="info">
-                         <b>Log Out</b> and <b>Log In</b> to see the newly added product in the product list. If you have
+                     : <CAlert color="info">
+                         <b>Log Out</b> and <b>Log In</b> to see the newly added product in the product list. If you
+                                        have
                                         read the information above, then
                          <CButton color="primary"
                                   variant="ghost"
@@ -646,9 +647,10 @@ const AddProductModal = ({state, setState, type, product}) => {
                          : null}
 
 
-                            {isModifyingModal
-                             ? <><h5>Update Product Info</h5><br/></>
-                             : <p className="text-muted">Add new product and start collecting information from Sonarqube and Jira</p>}
+                        {isModifyingModal
+                         ? <><h5>Update Product Info</h5><br/></>
+                         : <p className="text-muted">Add new product and start collecting information from Sonarqube and
+                                                     Jira</p>}
 
 
                         <CInputGroup className="mb-3">
@@ -670,10 +672,12 @@ const AddProductModal = ({state, setState, type, product}) => {
                         {isModifyingModal
                          ? <CCardBody>
                              <CFormGroup row>
-                                     <CFormGroup variant="custom-checkbox" inline>
-                                         <CInputCheckbox custom id="inline-radio1" name="inline-radios" value="option1" onChange={() => setGenerateNewToken(true)}/>
-                                         <CLabel variant="custom-checkbox" htmlFor="inline-radio1">Generate New Token</CLabel>
-                                     </CFormGroup>
+                                 <CFormGroup variant="custom-checkbox" inline>
+                                     <CInputCheckbox custom id="inline-radio1" name="inline-radios" value="option1"
+                                                     onChange={() => setGenerateNewToken(true)}/>
+                                     <CLabel variant="custom-checkbox" htmlFor="inline-radio1">Generate New
+                                                                                               Token</CLabel>
+                                 </CFormGroup>
                              </CFormGroup>
                          </CCardBody>
                          : null}
@@ -684,8 +688,8 @@ const AddProductModal = ({state, setState, type, product}) => {
                             </CCol>
                             <CCol xs="2">
                                 {isModifyingModal
-                                ? null
-                                :<CRow className="text-right">
+                                 ? null
+                                 : <CRow className="text-right">
                                      <CSwitch className={'mx-1 cil-align-right'} shape={'pill'}
                                               color={isModifyingModal ? "warning" : "info"}
                                               labelOn={'\u2713'}
@@ -757,7 +761,8 @@ const AddProductModal = ({state, setState, type, product}) => {
 
                             {sonarqubeConnectionLoading
                              ? renderLoader()
-                             : <CButton disabled={!(sonarqubeEnabled && sqDataExists() || sqDataExists() && product.sonarqubeInfo)}
+                             : <CButton disabled={!(sonarqubeEnabled && sqDataExists() || sqDataExists() &&
+                                    product.sonarqubeInfo)}
                                         color="primary"
                                         variant="ghost"
                                         block
@@ -781,8 +786,8 @@ const AddProductModal = ({state, setState, type, product}) => {
                             </CCol>
                             <CCol xs="2">
                                 {isModifyingModal
-                                ? null
-                                : <CRow className="text-right">
+                                 ? null
+                                 : <CRow className="text-right">
                                      <CSwitch className={'mx-1'} shape={'pill'}
                                               color={isModifyingModal ? "warning" : "info"} labelOn={'\u2713'}
                                               labelOff={'\u2715'}
@@ -871,11 +876,12 @@ const AddProductModal = ({state, setState, type, product}) => {
 
                             {jiraConnectionLoading
                              ? renderLoader()
-                             : <CButton disabled={!(jiraEnabled && jiraDataExists() || jiraDataExists() && product.jiraInfo)}
-                                        color="primary"
-                                        variant="ghost"
-                                        block
-                                        onClick={() => testJiraConnection()}>
+                             : <CButton
+                                 disabled={!(jiraEnabled && jiraDataExists() || jiraDataExists() && product.jiraInfo)}
+                                 color="primary"
+                                 variant="ghost"
+                                 block
+                                 onClick={() => testJiraConnection()}>
                                  <CIcon name="cil-link"/> Test Jira Connection
                              </CButton>}
 
@@ -898,22 +904,22 @@ const AddProductModal = ({state, setState, type, product}) => {
                          <CIcon name="cil-ban"/> Cancel
                      </CButton>
                      {isModifyingModal
-                     ? <CButton color="warning"
-                                disabled={!updateButtonEnabled()}
-                                onClick={() => update()}>
+                      ? <CButton color="warning"
+                                 disabled={!updateButtonEnabled()}
+                                 onClick={() => update()}>
                           <CIcon name="cil-save"/> Update
                       </CButton>
-                     : <CButton color="info"
-                                   disabled={!saveButtonEnabled()}
-                                   onClick={() => save()}>
-                              <CIcon name="cil-save"/> Save Product
-                          </CButton>}
+                      : <CButton color="info"
+                                 disabled={!saveButtonEnabled()}
+                                 onClick={() => save()}>
+                          <CIcon name="cil-save"/> Save Product
+                      </CButton>}
                  </>
                  : <>
                      {isModifyingModal
-                     ? null
-                     : <CButton color="danger"
-                                onClick={() => resetModal()}>
+                      ? null
+                      : <CButton color="danger"
+                                 onClick={() => resetModal()}>
                           <CIcon name="cil-x-circle"/> Reset Modal
                       </CButton>}
                      <CButton color="info"

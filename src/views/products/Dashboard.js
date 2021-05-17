@@ -9,7 +9,7 @@ import {useProductContext} from "../../context/ProductContextProvider";
 import {getProducts} from "../../utils/product-service";
 import {Loader} from "../common/Loader";
 import {Redirect, Switch} from "react-router-dom";
-import {getStyle, hexToRgba} from "@coreui/utils";
+import {getColor, getStyle} from "@coreui/utils";
 import CIcon from "@coreui/icons-react";
 import AddProductModal from "./AddProductModal";
 
@@ -26,7 +26,7 @@ const getDatasets = (qualityLevels) => {
     return [
         {
             label: 'Quality Level',
-            backgroundColor: hexToRgba(brandInfo, 10),
+            backgroundColor: getColor("transparent"),
             borderColor: brandInfo,
             pointHoverBackgroundColor: brandInfo,
             borderWidth: 2,
@@ -64,9 +64,35 @@ const defaultOptions = {
             hitRadius: 10,
             hoverRadius: 4,
             hoverBorderWidth: 3
+        },
+        line: {
+            tension: 0.00001
         }
     }
 };
+
+const TOOLTIP_QUALITY_LEVEL = "The quality level is calculated from quality characteristic ratings provided by Sonarqube.\n" +
+    "This version of PQD calculates the quality from three characteristics: security, reliability, and maintainability.\n" +
+    " Ratings of these characteristics are converted (A-100%, B-75%, ..., E-0%), added together, divided by 3*100, and then multiplied by 100.";
+
+const TOOLTIP_RELEASE_TIME = "Release time indicates the time when PQD collected the release info. " +
+    "This is meant to be done at the same time when you deploy your code. " +
+    "Usually, when your release pipeline finishes.";
+
+const TOOLTIP_RELEASE_DROPDOWN = "Select a release to inspect the details from the tools specified with this product. " +
+    "After selecting a release, click on a tool below to display the details extracted from that product at the time of the release.";
+
+const TOOLTIP_RELIABILITY = "ISO/IEC 25010: Degree to which a system, product or component performs specified functions under specified conditions for a specified period of time.";
+
+const TOOLTIP_SECURITY = "ISO/IEC 25010: Degree to which a product or system protects information and data so that persons or other products or systems have the degree of data access appropriate to their types and levels of authorization.";
+
+const TOOLTIP_MAINTAINABILITY = "ISO/IEC 25010: The degree of effectiveness and efficiency with which a product or system can be modified to improve it, correct it or adapt it to changes in environment, and in requirements. ";
+
+const TOOLTIP_QUALITY_LEVEL_GREEN = "Everything is good. Rating A shows that everything is perfect. Rating B shows minor issues but overall quality is good."
+
+const TOOLTIP_QUALITY_LEVEL_YELLOW = "Major issues. Ratings C and D indicate some major issues with the release."
+
+const TOOLTIP_QUALITY_LEVEL_RED = "Critical issues. Rating E indicates critical flaws with the release."
 
 export const Dashboard = (props) => {
 
@@ -142,8 +168,10 @@ export const Dashboard = (props) => {
 
     const getTimeFromTimestamp = (timestamp) => {
         const date = new Date(timestamp);
+        const formatedMinutes = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
+        const formatedHours = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
         return date.getDate() + ". " + date.toString().split(" ")[1] + " " + date.getFullYear() +
-            ", " + date.getHours() + ":" + date.getMinutes();
+            ", " + formatedHours + ":" + formatedMinutes;
     }
 
     const getTimeFromTimestampWithoutClock = (timestamp) => {
@@ -162,8 +190,18 @@ export const Dashboard = (props) => {
             <CDropdownToggle color="primary">
                 {selectedRelease ? dropdownButtonTitle.current : "Select Release"}
             </CDropdownToggle>
+            <a style={{fontSize: "large", padding: "7px"}}>
+                <CTooltip
+                    content={TOOLTIP_RELEASE_DROPDOWN}>
+                    <CLink>(?)</CLink>
+                </CTooltip>
+            </a>
             <CDropdownMenu placement="right">
-                <CDropdownItem header>Select Release </CDropdownItem>
+                <CDropdownItem header>Select Release{" "}
+                    <CTooltip
+                        content={TOOLTIP_RELEASE_TIME}>
+                        <CLink>(?)</CLink>
+                    </CTooltip></CDropdownItem>
                 {releaseIds.map((rel, idx) => {
                     return (
                         <CDropdownItem onClick={() => onDropdownItemClick(idx, rel)}>{rel}</CDropdownItem>
@@ -199,6 +237,16 @@ export const Dashboard = (props) => {
                     </div>
                 </CCol>
             </CRow>
+            <hr/>
+            <CRow>
+                <CCol xs={11}>
+                    Here is a graph of quality levels of different releases through the time.
+                    The quality levels are calculated by composing various quality characteristic ratings.
+                    Each release is identified with a timestamp indicating the time when the new code was released.
+                    Select a release from the dropdown below of the graph to see additional information collected from
+                    various tools.
+                </CCol>
+            </CRow>
         </CCardBody>;
     }
 
@@ -220,15 +268,50 @@ export const Dashboard = (props) => {
 
             const getRating = (rating) => {
                 if (rating === 1.0) {
-                    return <CBadge color="success">A</CBadge>;
+                    return <>
+                        <CBadge color="success">A</CBadge>
+                        {" "}
+                        <CTooltip
+                            content={TOOLTIP_QUALITY_LEVEL_GREEN}>
+                            <CLink>(?)</CLink>
+                        </CTooltip>
+                    </>;
                 } else if (rating === 2.0) {
-                    return <CBadge color="success">B</CBadge>;
+                    return <>
+                        <CBadge color="success">B</CBadge>
+                        {" "}
+                        <CTooltip
+                            content={TOOLTIP_QUALITY_LEVEL_GREEN}>
+                            <CLink>(?)</CLink>
+                        </CTooltip>
+                    </>;
                 } else if (rating === 3.0) {
-                    return <CBadge color="warning">C</CBadge>;
-                } else if (rating === 2.0) {
-                    return <CBadge color="warning">D</CBadge>;
+                    return <>
+                        <CBadge color="warning">C</CBadge>
+                        {" "}
+                        <CTooltip
+                            content={TOOLTIP_QUALITY_LEVEL_YELLOW}>
+                            <CLink>(?)</CLink>
+                        </CTooltip>
+                    </>;
+                } else if (rating === 4.0) {
+                    return <>
+                        <CBadge color="warning">D</CBadge>
+                        {" "}
+                        <CTooltip
+                            content={TOOLTIP_QUALITY_LEVEL_YELLOW}>
+                            <CLink>(?)</CLink>
+                        </CTooltip>
+                    </>;
                 } else {
-                    return <CBadge color="danger">E</CBadge>;
+                    return <>
+                        <CBadge color="danger">E</CBadge>
+                        {" "}
+                        <CTooltip
+                            content={TOOLTIP_QUALITY_LEVEL_RED}>
+                            <CLink>(?)</CLink>
+                        </CTooltip>
+                    </>;
                 }
             };
 
@@ -245,12 +328,22 @@ export const Dashboard = (props) => {
             return (<>
                     {renderDetailHeader()}
                     <CCardBody>
+                        <p style={{paddingLeft: "5px"}}>Quality level (0-100%){" "}
+                            <CTooltip
+                                content={TOOLTIP_QUALITY_LEVEL}>
+                                <CLink>(?)</CLink>
+                            </CTooltip></p>
                         <CChartLine
                             style={{height: '300px', marginTop: '40px'}}
                             datasets={datasets.slice(0, MAX_GRAPH_ELEMENTS)}
                             labels={releaseIds.slice(0, MAX_GRAPH_ELEMENTS)}
                             options={defaultOptions}
                         />
+                        <p style={{paddingTop: "5px"}} className="text-center">Release time{" "}
+                            <CTooltip
+                                content={TOOLTIP_RELEASE_TIME}>
+                                <CLink>(?)</CLink>
+                            </CTooltip></p>
                     </CCardBody>
                     <hr/>
                     <CCardBody>
@@ -263,9 +356,15 @@ export const Dashboard = (props) => {
                             {selectedRelease
                              ? <CCol xs={12} sm={4} lg={3}>
                                  <div style={{marginTop: "4px"}}>
+                                     <a style={{fontSize: "large", padding: "7px"}}>
+                                         <CTooltip
+                                             content={TOOLTIP_QUALITY_LEVEL}>
+                                             <CLink>(?)</CLink>
+                                         </CTooltip>
+                                     </a>
                                      <CBadge color={getBadge(qualityLevel)}>
                                          <div style={{fontSize: "medium", padding: "7px"}}>
-                                             Quality Level: {qualityLevel * 100}%
+                                             Quality Level: {qualityLevel * 100}%{" "}
                                          </div>
                                      </CBadge>
                                  </div>
@@ -308,7 +407,12 @@ export const Dashboard = (props) => {
                                                      <CListGroupItem>
                                                          <CRow>
                                                              <CCol xs="5" md="3">
-                                                                 <div style={{fontSize: "medium"}}>Reliability</div>
+                                                                 <div style={{fontSize: "medium"}}>Reliability{" "}
+                                                                     <CTooltip
+                                                                         content={TOOLTIP_RELIABILITY}>
+                                                                         <CLink>(?)</CLink>
+                                                                     </CTooltip>
+                                                                 </div>
                                                              </CCol>
                                                              <CCol xs="3" md="3">
                                                                  Rating: {getRating(
@@ -323,7 +427,12 @@ export const Dashboard = (props) => {
                                                      <CListGroupItem>
                                                          <CRow>
                                                              <CCol xs="5" md="3">
-                                                                 <div style={{fontSize: "medium"}}>Security</div>
+                                                                 <div style={{fontSize: "medium"}}>Security{" "}
+                                                                     <CTooltip
+                                                                         content={TOOLTIP_SECURITY}>
+                                                                         <CLink>(?)</CLink>
+                                                                     </CTooltip>
+                                                                 </div>
                                                              </CCol>
                                                              <CCol xs="3" md="3">
                                                                  Rating: {getRating(
@@ -338,7 +447,12 @@ export const Dashboard = (props) => {
                                                      <CListGroupItem>
                                                          <CRow>
                                                              <CCol xs="5" md="3">
-                                                                 <div style={{fontSize: "medium"}}>Maintainability</div>
+                                                                 <div style={{fontSize: "medium"}}>Maintainability{" "}
+                                                                     <CTooltip
+                                                                         content={TOOLTIP_MAINTAINABILITY}>
+                                                                         <CLink>(?)</CLink>
+                                                                     </CTooltip>
+                                                                 </div>
                                                              </CCol>
                                                              <CCol xs="3" md="3">
                                                                  Rating: {getRating(

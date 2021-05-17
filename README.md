@@ -1,4 +1,36 @@
-# Getting Started with Create React App
+# PQD-Front
+
+This is the frontend of the PQD system. Refer to the [PQD-API for more information.](https://github.com/Kert944/PQD-BE)
+
+PQD-Front is written using CoreUI React components library. The front-end was implemented using React
+Hooks to manage state, and React Context to share global data, such as user and
+product information. The CoreUI components were taken as a base and modified to fit
+the needs of the PQD-Front use cases.
+
+PQD-API base url must be changed for web deploy or local development. The base url is configured in src/config/config.json
+
+For running without container on port 3000:
+```
+npm install
+npm start
+```
+
+### Some useful Docker commands
+
+Docker start:
+
+```
+docker build -t pqd-front-react .
+docker run -p 3000:3000 pqd-front-react
+```
+Docker start using compose:
+```
+docker-compose up -d --build
+```
+Kill containers:
+```
+docker-compose down
+```
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
