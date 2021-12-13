@@ -71,6 +71,10 @@ export const triggerReleaseInfoCollection = (url, token) => {
         });
 }
 
+export const testJenkinsApiConnection = (jwt, body) => {
+    return testConnection("jenkins", body, jwt);
+}
+
 export const testSonarqubeApiConnection = (jwt, body) => {
     return testConnection("sonarqube", body, jwt);
 }
@@ -87,14 +91,11 @@ const testConnection = (toolName, body, jwt) => {
             } else {
                 return {status: "Error", body: res.json()};
             }
-        })
-        .then(data => {
-            if (data.status === "OK") {
+        }).then(data => {
+            
                 return data.body;
-            } else {
-                throw new Error("Testing product connection failed somewhere inside the PQD system");
-            }
-        });
+       
+        })
 }
 
 const fetchProducts = (jwt) => {

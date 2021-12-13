@@ -6,7 +6,12 @@ import {
 import React, {useEffect, useRef, useState} from "react";
 import CIcon from "@coreui/icons-react";
 import {
-    saveProduct, testJiraApiConnection, testSonarqubeApiConnection, triggerReleaseInfoCollection, updateProduct
+    saveProduct,
+    testJenkinsApiConnection,
+    testJiraApiConnection,
+    testSonarqubeApiConnection,
+    triggerReleaseInfoCollection,
+    updateProduct
 } from "../../utils/product-service";
 import {useUserContext} from "../../context/UserContextProvider";
 import {renderInputHelper} from "../common/FormHelper";
@@ -31,15 +36,26 @@ const AddProductModal = ({state, setState, type, product}) => {
     const [jiraUserEmail, setJiraUserEmail] = useState("");
     const [jiraApiToken, setJiraApiToken] = useState("");
 
+    // Jenkins info
+    const [jenkinsBaseUrl, setJenkinsBaseUrl] = useState("");
+    const [jenkinsUsername, setJenkinsUsername] = useState("");
+    const [jenkinsApiToken, setJenkinsApiToken] = useState("");
+
     // Other states and refs
     const [sonarqubeEnabled, setSonarqubeEnabled] = useState(true);
     const [sonarqubeConnection, setSonarqubeConnection] = useState({});
     const sonarqubeTested = useRef(false);
     const [sonarqubeConnectionLoading, setSonarqubeConnectionLoading] = useState(false);
+
     const [jiraEnabled, setJiraEnabled] = useState(true);
     const [jiraConnection, setJiraConnection] = useState({});
     const jiraTested = useRef(false);
     const [jiraConnectionLoading, setJiraConnectionLoading] = useState(false);
+
+    const [jenkinsEnabled, setJenkinsEnabled] = useState(true);
+    const [jenkinsConnection, setJenkinsConnection] = useState({});
+    const jenkinsTested = useRef(false);
+    const [jenkinsConnectionLoading, setJenkinsConnectionLoading] = useState(false);
 
     const [savedProduct, setSavedProduct] = useState(undefined);
     const [productSaving, setProductSaving] = useState(false);
@@ -64,9 +80,13 @@ const AddProductModal = ({state, setState, type, product}) => {
             setJiraBoardId(product.jiraInfo?.boardId);
             setJiraUserEmail(product.jiraInfo?.userEmail);
             setJiraApiToken(product.jiraInfo?.token);
+            setJenkinsBaseUrl(product.jenkinsInfo?.baseUrl)
+            setJenkinsUsername(product.jenkinsInfo?.username)
+            setJenkinsApiToken(product.jenkinsInfo?.token)
 
             setSonarqubeEnabled(false);
             setJiraEnabled(false);
+            setJenkinsEnabled(false);
         }
     }, [product])
 
@@ -92,6 +112,9 @@ const AddProductModal = ({state, setState, type, product}) => {
         sonarqubeTested.current = false;
         setJiraConnectionLoading(false);
         setSonarqubeConnectionLoading(false);
+        setJenkinsApiToken("");
+        setJenkinsUsername("");
+        setJenkinsBaseUrl("");
     }
 
     const nameValid = () => {
@@ -125,17 +148,25 @@ const AddProductModal = ({state, setState, type, product}) => {
             && jiraApiToken !== ""
     }
 
+    const jenkinsDataExists = () => {
+        return jenkinsBaseUrl !== ""
+            //  && baseUrlValid(jenkinsBaseUrl)
+            && jenkinsUsername !== "" && jenkinsApiToken !== "";
+    }
+
     const saveButtonEnabled = () => {
         return name !== "" && nameValid()
-            && (jiraEnabled || sonarqubeEnabled)
+            && (jiraEnabled || sonarqubeEnabled || jenkinsEnabled)
             && (jiraEnabled && jiraDataExists() || !jiraEnabled)
-            && (sonarqubeEnabled && sqDataExists() || !sonarqubeEnabled);
+            && (sonarqubeEnabled && sqDataExists() || !sonarqubeEnabled)
+            && (jenkinsEnabled && jenkinsDataExists() || !jenkinsEnabled);
     }
 
     const updateButtonEnabled = () => {
         return name !== "" && nameValid()
             && (jiraDataExists() && product.jiraInfo || !product.jiraInfo)
-            && (sqDataExists() && product.sonarqubeInfo || !product.sonarqubeInfo);
+            && (sqDataExists() && product.sonarqubeInfo || !product.sonarqubeInfo)
+            && (jenkinsEnabled && jenkinsDataExists() || !jenkinsEnabled);
     }
 
     const testSqConnection = () => {
@@ -179,6 +210,28 @@ const AddProductModal = ({state, setState, type, product}) => {
         }
     }
 
+    const testJenkinsConnection = () => {
+        if (jenkinsDataExists()) {
+            setJenkinsConnectionLoading(true);
+            const requestBody = {
+                baseUrl: jenkinsBaseUrl,
+                username: jenkinsUsername,
+                token: jenkinsApiToken
+            }
+            testJenkinsApiConnection(getUserInfo().jwt, requestBody)
+                .then((res) => {
+                    setJenkinsConnection(res);
+                })
+                .catch(e => {
+                    console.error(e)
+                })
+                .finally(() => {
+                    jenkinsTested.current = true;
+                    setJenkinsConnectionLoading(false);
+                });
+        }
+    }
+
     const makeTriggerRequest = (url) => {
         setTriggerRequestLoading(true);
         triggerReleaseInfoCollection(url, savedProduct?.token)
@@ -206,7 +259,7 @@ const AddProductModal = ({state, setState, type, product}) => {
             }
         };
 
-        if (sonarqubeEnabled) {
+        if (sqDataExists()) {
             requestBody.product.sonarqubeInfo = {
                 baseUrl: sqBaseUrl,
                 componentName: sqComponentName,
@@ -214,12 +267,20 @@ const AddProductModal = ({state, setState, type, product}) => {
             };
         }
 
-        if (jiraEnabled) {
+        if (jiraDataExists()) {
             requestBody.product.jiraInfo = {
                 baseUrl: jiraBaseUrl,
                 boardId: jiraBoardId,
                 userEmail: jiraUserEmail,
                 token: jiraApiToken
+            };
+        }
+
+        if (jenkinsDataExists()) {
+            requestBody.product.jenkinsInfo = {
+                baseUrl: jenkinsBaseUrl,
+                username: jenkinsUsername,
+                token: jenkinsApiToken
             };
         }
         return requestBody;
@@ -252,6 +313,14 @@ const AddProductModal = ({state, setState, type, product}) => {
                 boardId: jiraBoardId,
                 userEmail: jiraUserEmail,
                 token: jiraApiToken
+            };
+        }
+
+        if (jenkinsEnabled) {
+            requestBody.jenkinsInfo = {
+                baseUrl: jenkinsBaseUrl,
+                username: jenkinsUsername,
+                token: jenkinsApiToken
             };
         }
         return requestBody;
@@ -437,65 +506,95 @@ const AddProductModal = ({state, setState, type, product}) => {
             <CCollapse show={accordion === 2}>
                 <CCardBody>
                     {prod?.sonarqubeInfo
-                     ? <>
-                         <h6>Sonarqube</h6>
-                         <CRow>
-                             <CCol xs="4">
-                                 Base url:
-                             </CCol>
-                             <CCol xs="8">
-                                 {prod.sonarqubeInfo?.baseUrl}
-                             </CCol>
-                         </CRow>
-                         <CRow>
-                             <CCol xs="4">
-                                 <p>Component:</p>
-                             </CCol>
-                             <CCol xs="8">
-                                 {prod.sonarqubeInfo?.componentName}
-                             </CCol>
-                         </CRow>
-                         <CRow>
-                             <CCol xs="4">
-                                 <p>Token:</p>
-                             </CCol>
-                             <CCol xs="8">
-                                 {prod.sonarqubeInfo?.token}
-                             </CCol>
-                         </CRow>
-                         <br/>
-                     </>
-                     : null
+                    && <>
+                        <h6>Sonarqube</h6>
+                        <CRow>
+                            <CCol xs="4">
+                                Base url:
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.sonarqubeInfo?.baseUrl}
+                            </CCol>
+                        </CRow>
+                        <CRow>
+                            <CCol xs="4">
+                                <p>Component:</p>
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.sonarqubeInfo?.componentName}
+                            </CCol>
+                        </CRow>
+                        <CRow>
+                            <CCol xs="4">
+                                <p>Token:</p>
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.sonarqubeInfo?.token}
+                            </CCol>
+                        </CRow>
+                        <br/>
+                    </>
+
                     }
                     {prod?.jiraInfo
-                     ? <>
-                         <h6>Jira</h6>
-                         <CRow>
-                             <CCol xs="4">
-                                 Base url:
-                             </CCol>
-                             <CCol xs="8">
-                                 {prod.jiraInfo?.baseUrl}
-                             </CCol>
-                         </CRow>
-                         <CRow>
-                             <CCol xs="4">
-                                 Board id:
-                             </CCol>
-                             <CCol xs="8">
-                                 {prod.jiraInfo?.boardId}
-                             </CCol>
-                         </CRow>
-                         <CRow>
-                             <CCol xs="4">
-                                 <p>Token:</p>
-                             </CCol>
-                             <CCol xs="8">
-                                 {prod.jiraInfo?.token}
-                             </CCol>
-                         </CRow>
-                     </>
-                     : null
+                    && <>
+                        <h6>Jira</h6>
+                        <CRow>
+                            <CCol xs="4">
+                                Base url:
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.jiraInfo?.baseUrl}
+                            </CCol>
+                        </CRow>
+                        <CRow>
+                            <CCol xs="4">
+                                Board id:
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.jiraInfo?.boardId}
+                            </CCol>
+                        </CRow>
+                        <CRow>
+                            <CCol xs="4">
+                                <p>Token:</p>
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.jiraInfo?.token}
+                            </CCol>
+                        </CRow>
+                    </>
+
+                    }
+                    {prod?.jenkinsInfo
+                    && <>
+                        <h6>Jenkins</h6>
+                        <CRow>
+                            <CCol xs="4">
+                                Base url:
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.jenkinsInfo?.baseUrl}
+                            </CCol>
+                        </CRow>
+                        <CRow>
+                            <CCol xs="4">
+                                Username:
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.jenkinsInfo?.username}
+                            </CCol>
+                        </CRow>
+                        <CRow>
+                            <CCol xs="4">
+                                <p>Token:</p>
+                            </CCol>
+                            <CCol xs="8">
+                                {prod.jenkinsInfo?.token}
+                            </CCol>
+                        </CRow>
+                    </>
+
                     }
                 </CCardBody>
             </CCollapse>
@@ -688,14 +787,15 @@ const AddProductModal = ({state, setState, type, product}) => {
                             </CCol>
                             <CCol xs="2">
                                 {isModifyingModal
-                                 ? null
-                                 : <CRow className="text-right">
-                                     <CSwitch className={'mx-1 cil-align-right'} shape={'pill'}
-                                              color={isModifyingModal ? "warning" : "info"}
-                                              labelOn={'\u2713'}
-                                              labelOff={'\u2715'}
-                                              defaultChecked onChange={() => setSonarqubeEnabled(!sonarqubeEnabled)}/>
-                                 </CRow>}
+                                    ? null
+                                    : <CRow className="text-right">
+                                        <CSwitch className={'mx-1 cil-align-right'} shape={'pill'}
+                                                 color={isModifyingModal ? "warning" : "info"}
+                                                 labelOn={'\u2713'}
+                                                 labelOff={'\u2715'}
+                                                 defaultChecked
+                                                 onChange={() => setSonarqubeEnabled(!sonarqubeEnabled)}/>
+                                    </CRow>}
                             </CCol>
                         </CRow>
 
@@ -786,13 +886,13 @@ const AddProductModal = ({state, setState, type, product}) => {
                             </CCol>
                             <CCol xs="2">
                                 {isModifyingModal
-                                 ? null
-                                 : <CRow className="text-right">
-                                     <CSwitch className={'mx-1'} shape={'pill'}
-                                              color={isModifyingModal ? "warning" : "info"} labelOn={'\u2713'}
-                                              labelOff={'\u2715'}
-                                              defaultChecked onChange={() => setJiraEnabled(!jiraEnabled)}/>
-                                 </CRow>}
+                                    ? null
+                                    : <CRow className="text-right">
+                                        <CSwitch className={'mx-1'} shape={'pill'}
+                                                 color={isModifyingModal ? "warning" : "info"} labelOn={'\u2713'}
+                                                 labelOff={'\u2715'}
+                                                 defaultChecked onChange={() => setJiraEnabled(!jiraEnabled)}/>
+                                    </CRow>}
                             </CCol>
                         </CRow>
 
@@ -875,23 +975,121 @@ const AddProductModal = ({state, setState, type, product}) => {
                             </CInputGroup>
 
                             {jiraConnectionLoading
-                             ? renderLoader()
-                             : <CButton
-                                 disabled={!(jiraEnabled && jiraDataExists() || jiraDataExists() && product.jiraInfo)}
-                                 color="primary"
-                                 variant="ghost"
-                                 block
-                                 onClick={() => testJiraConnection()}>
-                                 <CIcon name="cil-link"/> Test Jira Connection
-                             </CButton>}
+                                ? renderLoader()
+                                : <CButton
+                                    disabled={!(jiraEnabled && jiraDataExists() || jiraDataExists() && product.jiraInfo)}
+                                    color="primary"
+                                    variant="ghost"
+                                    block
+                                    onClick={() => testJiraConnection()}>
+                                    <CIcon name="cil-link"/> Test Jira Connection
+                                </CButton>}
 
                             {jiraTested.current
-                             ? jiraConnection?.connectionOk
-                               ? renderInputHelper(jiraConnection?.message, "success")
-                               : renderInputHelper(jiraConnection?.message)
-                             : null}
+                                ? jiraConnection?.connectionOk
+                                    ? renderInputHelper(jiraConnection?.message, "success")
+                                    : renderInputHelper(jiraConnection?.message)
+                                : null}
 
                         </CCollapse>
+
+                        <br/>
+
+                        <CRow>
+                            <CCol xs="10">
+                                <h5>Jenkins</h5>
+                            </CCol>
+                            <CCol xs="2">
+                                {isModifyingModal
+                                    ? null
+                                    : <CRow className="text-right">
+                                        <CSwitch className={'mx-1 cil-align-right'} shape={'pill'}
+                                                 color={isModifyingModal ? "warning" : "info"}
+                                                 labelOn={'\u2713'}
+                                                 labelOff={'\u2715'}
+                                                 defaultChecked onChange={() => setJenkinsEnabled(!jenkinsEnabled)}/>
+                                    </CRow>}
+                            </CCol>
+                        </CRow>
+
+                        <CCollapse show={jenkinsEnabled || isModifyingModal && product.jenkinsInfo}>
+                            <p>Read more about how to{" "}
+                                <a target="_blank"
+                                   href="https://stackoverflow.com/questions/45466090/how-to-get-the-api-token-for-jenkins">
+                                    create Jenkins API token{" "}
+                                    <CIcon name="cil-external-link"/>
+                                </a>
+                                <br/>
+                                See also,{" "}
+                                <a target="_blank"
+                                   href="https://www.jenkins.io/doc/book/using/remote-access-api/">
+                                    Jenkins API documentation{" "}
+                                    <CIcon name="cil-external-link"/>
+                                </a>
+                            </p>
+
+                            <CInputGroup className="mb-3">
+                                <CInputGroupPrepend>
+                                    <CInputGroupText>
+                                        <CIcon name="cil-link"/>
+                                    </CInputGroupText>
+                                </CInputGroupPrepend>
+                                <CInput type="text"
+                                        placeholder="Jenkins API base url"
+                                        autoComplete=""
+                                        valid={jenkinsBaseUrl !== ""}
+                                        onChange={value => setJenkinsBaseUrl(value.currentTarget.value)}
+                                        value={jenkinsBaseUrl}/>
+                                <CInvalidFeedback>Invalid url</CInvalidFeedback>
+                            </CInputGroup>
+
+                            <CInputGroup className="mb-3">
+                                <CInputGroupPrepend>
+                                    <CInputGroupText>
+                                        <CIcon name="cil-fingerprint"/>
+                                    </CInputGroupText>
+                                </CInputGroupPrepend>
+                                <CInput type="text"
+                                        placeholder="Jenkins username"
+                                        autoComplete=""
+                                        valid={jenkinsUsername !== ""}
+                                        onChange={value => setJenkinsUsername(value.currentTarget.value)}
+                                        value={jenkinsUsername}/>
+                            </CInputGroup>
+
+                            <CInputGroup className="mb-3">
+                                <CInputGroupPrepend>
+                                    <CInputGroupText>
+                                        <CIcon name="cil-badge"/>
+                                    </CInputGroupText>
+                                </CInputGroupPrepend>
+                                <CInput type="text"
+                                        placeholder="Jenkins API token"
+                                        autoComplete=""
+                                        valid={jenkinsApiToken !== ""}
+                                        onChange={value => setJenkinsApiToken(value.currentTarget.value)}
+                                        value={jenkinsApiToken}/>
+                            </CInputGroup>
+
+                            {jenkinsConnectionLoading
+                                ? renderLoader()
+                                : <CButton disabled={!(jenkinsEnabled && jenkinsDataExists() || jenkinsDataExists() &&
+                                    product.jenkinsInfo)}
+                                           color="primary"
+                                           variant="ghost"
+                                           block
+                                           onClick={() => testJenkinsConnection()}>
+                                    <CIcon name="cil-link"/> Test Jenkins Connection
+                                </CButton>}
+
+                            {jenkinsTested.current
+                            && (jenkinsConnection?.connectionOk
+                                ? renderInputHelper(jenkinsConnection?.message, "success")
+                                : renderInputHelper(jenkinsConnection?.message))
+                            }
+
+                        </CCollapse>
+
 
                     </CForm>
                 </CCollapse>

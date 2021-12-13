@@ -1,6 +1,21 @@
 import {
-    CAlert, CBadge, CButton, CCard, CCardBody, CCardHeader, CCol, CCollapse, CDropdown, CDropdownItem, CDropdownMenu,
-    CDropdownToggle, CLink, CListGroup, CListGroupItem, CRow, CTabContent, CTabPane, CTooltip
+    CAlert,
+    CBadge,
+    CButton,
+    CCard,
+    CCardBody,
+    CCol,
+    CDropdown,
+    CDropdownItem,
+    CDropdownMenu,
+    CDropdownToggle,
+    CLink,
+    CListGroup,
+    CListGroupItem,
+    CRow,
+    CTabContent,
+    CTabPane,
+    CTooltip
 } from "@coreui/react";
 import React, {useEffect, useRef, useState} from "react";
 import {CChartLine} from "@coreui/react-chartjs";
@@ -12,6 +27,9 @@ import {Redirect, Switch} from "react-router-dom";
 import {getColor, getStyle} from "@coreui/utils";
 import CIcon from "@coreui/icons-react";
 import AddProductModal from "./AddProductModal";
+import SonarqubeDetails from "./details/SonarqubeDetails";
+import JiraDetails from "./details/JiraDetails";
+import JenkinsDetails from "./details/JenkinsDetails";
 
 const brandInfo = getStyle('info') || '#20a8d8'
 
@@ -82,18 +100,6 @@ const TOOLTIP_RELEASE_TIME = "Release time indicates the time when PQD collected
 const TOOLTIP_RELEASE_DROPDOWN = "Select a release to inspect the details from the tools specified with this product. " +
     "After selecting a release, click on a tool below to display the details extracted from that product at the time of the release.";
 
-const TOOLTIP_RELIABILITY = "ISO/IEC 25010: Degree to which a system, product or component performs specified functions under specified conditions for a specified period of time.";
-
-const TOOLTIP_SECURITY = "ISO/IEC 25010: Degree to which a product or system protects information and data so that persons or other products or systems have the degree of data access appropriate to their types and levels of authorization.";
-
-const TOOLTIP_MAINTAINABILITY = "ISO/IEC 25010: The degree of effectiveness and efficiency with which a product or system can be modified to improve it, correct it or adapt it to changes in environment, and in requirements. ";
-
-const TOOLTIP_QUALITY_LEVEL_GREEN = "Everything is good. Rating A shows that everything is perfect. Rating B shows minor issues but overall quality is good."
-
-const TOOLTIP_QUALITY_LEVEL_YELLOW = "Major issues. Ratings C and D indicate some major issues with the release."
-
-const TOOLTIP_QUALITY_LEVEL_RED = "Critical issues. Rating E indicates critical flaws with the release."
-
 export const Dashboard = (props) => {
 
     const {getUserInfo} = useUserContext();
@@ -106,7 +112,6 @@ export const Dashboard = (props) => {
     const [selectedRelease, setSelectedRelease] = useState(undefined);
     const dropdownButtonTitle = useRef();
     const [activeTab, setActiveTab] = useState(0);
-    const [issueAccordion, setIssueAccordion] = useState([]);
     const [modal, setModal] = useState(false);
 
     const renderLoader = () => {
@@ -174,11 +179,6 @@ export const Dashboard = (props) => {
             ", " + formatedHours + ":" + formatedMinutes;
     }
 
-    const getTimeFromTimestampWithoutClock = (timestamp) => {
-        const date = new Date(timestamp);
-        return date.getDate() + ". " + date.toString().split(" ")[1] + " " + date.getFullYear();
-    }
-
     const onDropdownItemClick = (idx, rel) => {
         const selRel = selectedProduct.releaseInfo[idx]
         dropdownButtonTitle.current = rel;
@@ -209,12 +209,6 @@ export const Dashboard = (props) => {
                 })}
             </CDropdownMenu>
         </CDropdown>
-    }
-
-    const onIssueAccordionClick = (sprintId) => {
-        issueAccordion.includes(sprintId)
-        ? setIssueAccordion(issueAccordion.filter(e => e !== sprintId))
-        : setIssueAccordion((prev) => [...prev, sprintId])
     }
 
     const renderDetailHeader = () => {
@@ -264,61 +258,6 @@ export const Dashboard = (props) => {
                 } else {
                     return "info";
                 }
-            };
-
-            const getRating = (rating) => {
-                if (rating === 1.0) {
-                    return <>
-                        <CBadge color="success">A</CBadge>
-                        {" "}
-                        <CTooltip
-                            content={TOOLTIP_QUALITY_LEVEL_GREEN}>
-                            <CLink>(?)</CLink>
-                        </CTooltip>
-                    </>;
-                } else if (rating === 2.0) {
-                    return <>
-                        <CBadge color="success">B</CBadge>
-                        {" "}
-                        <CTooltip
-                            content={TOOLTIP_QUALITY_LEVEL_GREEN}>
-                            <CLink>(?)</CLink>
-                        </CTooltip>
-                    </>;
-                } else if (rating === 3.0) {
-                    return <>
-                        <CBadge color="warning">C</CBadge>
-                        {" "}
-                        <CTooltip
-                            content={TOOLTIP_QUALITY_LEVEL_YELLOW}>
-                            <CLink>(?)</CLink>
-                        </CTooltip>
-                    </>;
-                } else if (rating === 4.0) {
-                    return <>
-                        <CBadge color="warning">D</CBadge>
-                        {" "}
-                        <CTooltip
-                            content={TOOLTIP_QUALITY_LEVEL_YELLOW}>
-                            <CLink>(?)</CLink>
-                        </CTooltip>
-                    </>;
-                } else {
-                    return <>
-                        <CBadge color="danger">E</CBadge>
-                        {" "}
-                        <CTooltip
-                            content={TOOLTIP_QUALITY_LEVEL_RED}>
-                            <CLink>(?)</CLink>
-                        </CTooltip>
-                    </>;
-                }
-            };
-
-            const getDebtTime = (time) => {
-                const hours = Math.floor(time / 60);
-                const minutes = time % 60;
-                return hours > 0 ? hours + "h " + minutes + "min" : minutes + "min";
             };
 
             const num = Number(selectedRelease?.qualityLevel)
@@ -378,202 +317,45 @@ export const Dashboard = (props) => {
                              <CCol xs="12" sm="4">
                                  <CListGroup id="list-tab" role="tablist">
                                      <CListGroupItem disabled>Inspect details from:</CListGroupItem>
-                                     {selectedRelease.releaseInfoSonarqube && selectedProduct.sonarqubeInfo
-                                      ? <CListGroupItem onClick={() => setActiveTab(1)} action
+                                     {(selectedRelease.releaseInfoSonarqube && selectedProduct.sonarqubeInfo)
+                                     && <CListGroupItem onClick={() => setActiveTab(1)} action
                                                         active={activeTab === 1}>
-                                          <CIcon name="cil-rss"/> Sonarqube
-                                      </CListGroupItem>
-                                      : null}
-                                     {selectedRelease.releaseInfoJira && selectedProduct.jiraInfo
-                                      ? <CListGroupItem onClick={() => setActiveTab(2)} action
+                                         <CIcon name="cil-rss"/> Sonarqube
+                                     </CListGroupItem>
+                                     }
+                                     {(selectedRelease.releaseInfoJira && selectedProduct.jiraInfo)
+                                     && <CListGroupItem onClick={() => setActiveTab(2)} action
                                                         active={activeTab === 2}>
-                                          <CIcon name="cib-jira"/> Jira
-                                      </CListGroupItem>
-                                      : null}
+                                         <CIcon name="cib-jira"/> Jira
+                                     </CListGroupItem>
+                                     }
+                                     {(selectedRelease.releaseInfoJenkins && selectedProduct.jenkinsInfo) &&
+                                     <CListGroupItem
+                                         onClick={() => setActiveTab(3)}
+                                         action
+                                         active={activeTab === 3}
+                                     >
+                                         <CIcon name="cil-user"/> Jenkins
+                                     </CListGroupItem>}
                                  </CListGroup>
                              </CCol>
-                             <CCol xs="12" sm="8">
-                                 <CTabContent>
-                                     <CTabPane active={activeTab === 1}>
-                                         <CCard>
-                                             <CCardHeader>
-                                                 <CIcon name="cil-rss"/> Sonarqube
-                                                 <small> master scan info</small>
-                                             </CCardHeader>
-                                             <CCardBody>
-                                                 <CListGroup>
-                                                     <CListGroupItem color="light">Quality
-                                                                                   characteristics</CListGroupItem>
-                                                     <CListGroupItem>
-                                                         <CRow>
-                                                             <CCol xs="5" md="3">
-                                                                 <div style={{fontSize: "medium"}}>Reliability{" "}
-                                                                     <CTooltip
-                                                                         content={TOOLTIP_RELIABILITY}>
-                                                                         <CLink>(?)</CLink>
-                                                                     </CTooltip>
-                                                                 </div>
-                                                             </CCol>
-                                                             <CCol xs="3" md="3">
-                                                                 Rating: {getRating(
-                                                                 selectedRelease.releaseInfoSonarqube?.reliabilityRating)}
-                                                             </CCol>
-                                                             <CCol xs="4" md="3">
-                                                                 <CIcon
-                                                                     name="cil-bug"/> Bugs: {selectedRelease.releaseInfoSonarqube?.reliabilityBugs}
-                                                             </CCol>
-                                                         </CRow>
-                                                     </CListGroupItem>
-                                                     <CListGroupItem>
-                                                         <CRow>
-                                                             <CCol xs="5" md="3">
-                                                                 <div style={{fontSize: "medium"}}>Security{" "}
-                                                                     <CTooltip
-                                                                         content={TOOLTIP_SECURITY}>
-                                                                         <CLink>(?)</CLink>
-                                                                     </CTooltip>
-                                                                 </div>
-                                                             </CCol>
-                                                             <CCol xs="3" md="3">
-                                                                 Rating: {getRating(
-                                                                 selectedRelease.releaseInfoSonarqube?.securityRating)}
-                                                             </CCol>
-                                                             <CCol xs="4" md="3">
-                                                                 <CIcon
-                                                                     name="cil-lock-unlocked"/> Vulnerabilities: {selectedRelease.releaseInfoSonarqube?.securityVulnerabilities}
-                                                             </CCol>
-                                                         </CRow>
-                                                     </CListGroupItem>
-                                                     <CListGroupItem>
-                                                         <CRow>
-                                                             <CCol xs="5" md="3">
-                                                                 <div style={{fontSize: "medium"}}>Maintainability{" "}
-                                                                     <CTooltip
-                                                                         content={TOOLTIP_MAINTAINABILITY}>
-                                                                         <CLink>(?)</CLink>
-                                                                     </CTooltip>
-                                                                 </div>
-                                                             </CCol>
-                                                             <CCol xs="3" md="3">
-                                                                 Rating: {getRating(
-                                                                 selectedRelease.releaseInfoSonarqube?.maintainabilityRating)}
-                                                             </CCol>
-                                                             <CCol xs="4" md="3">
-                                                                 <CIcon name="cil-burn"/> Code
-                                                                                          Smells: {selectedRelease.releaseInfoSonarqube?.maintainabilitySmells}
-                                                             </CCol>
-                                                             <CCol xs="4" md="3">
-                                                                 <CIcon name="cil-clock"/> Debt: {getDebtTime(
-                                                                 selectedRelease.releaseInfoSonarqube?.maintainabilityDebt)}
-                                                             </CCol>
-                                                         </CRow>
-                                                     </CListGroupItem>
-                                                 </CListGroup>
-                                             </CCardBody>
-                                         </CCard>
-                                     </CTabPane>
+                                <CCol xs="12" sm="8">
+                                    <CTabContent>
+                                        <CTabPane active={activeTab === 1}>
+                                            <SonarqubeDetails
+                                                data={selectedRelease.releaseInfoSonarqube}
+                                            />
+                                        </CTabPane>
 
-                                     <CTabPane active={activeTab === 2}>
-                                         <CCard>
-                                             <CCardHeader>
-                                                 <CIcon name="cib-jira"/> Atlassian Jira
-                                                 <small> scrum sprint info</small>
-                                             </CCardHeader>
-                                             <CCardBody>
-                                                 <CListGroup>
-                                                     <CListGroupItem color="light">
-                                                         Active Sprint(s) <small>at the time of the release</small>
-                                                     </CListGroupItem>
+                                        <CTabPane active={activeTab === 2}>
+                                            <JiraDetails data={selectedRelease.releaseInfoJira}/>
+                                        </CTabPane>
 
-                                                     {selectedRelease.releaseInfoJira.jiraSprints.map(sprint => {
-                                                         return <CListGroupItem>
-                                                             <CRow>
-                                                                 <CCol xs="4">
-                                                                     {sprint.goal
-                                                                      ? <CTooltip content={sprint.goal}>
-                                                                          <CLink>
-                                                                              <div style={{fontSize: "medium"}}>
-                                                                                  {sprint.name}
-                                                                              </div>
-                                                                          </CLink>
-                                                                      </CTooltip>
-                                                                      : <div style={{fontSize: "medium"}}>
-                                                                          {sprint.name}
-                                                                      </div>}
-                                                                 </CCol>
-                                                                 <CCol xs="5">
-                                                                     <small>
-                                                                         <CIcon name="cil-clock"/>{" "}
-                                                                         {getTimeFromTimestampWithoutClock(
-                                                                             sprint.start)} - {getTimeFromTimestampWithoutClock(
-                                                                         sprint.end)}
-                                                                     </small>
-                                                                 </CCol>
-                                                                 <CCol xs="3">
-                                                                     <a target="_blank"
-                                                                        href={sprint.browserUrl}>
-                                                                         <small>
-                                                                             {"Open In Jira "}
-                                                                             <CIcon name="cil-external-link"/>
-                                                                         </small>
-                                                                     </a>
-                                                                 </CCol>
-                                                             </CRow>
-
-                                                             <hr/>
-
-                                                             {sprint.issues.length > 0
-                                                              ? <CCard className="mb-0">
-                                                                  <CCardHeader id="headingOne">
-                                                                      <CButton
-                                                                          block
-                                                                          color="link"
-                                                                          className="text-left m-0 p-0"
-                                                                          onClick={() => onIssueAccordionClick(
-                                                                              sprint.id)}>
-                                                                          <h5 className="m-0 p-0">
-                                                                              <CIcon name={issueAccordion.includes(
-                                                                                  sprint.id) ? "cil-chevron-bottom"
-                                                                                             : "cil-chevron-top"}/>
-                                                                              {" "}Issues in {sprint.name}
-                                                                          </h5>
-                                                                      </CButton>
-                                                                  </CCardHeader>
-                                                                  <CCollapse show={issueAccordion.includes(sprint.id)}>
-                                                                      <CCardBody>
-                                                                          {sprint.issues.map(issue => {
-                                                                              return (<CListGroup accent>
-                                                                                  <CListGroupItem>
-                                                                                      <a target="_blank"
-                                                                                         href={issue.browserUrl}>
-                                                                                          <img
-                                                                                              src={issue.fields.issueType.iconUrl}/> {issue.key}
-                                                                                          {" "}
-                                                                                          <small>
-                                                                                              {"Open In Jira "}
-                                                                                              <CIcon
-                                                                                                  name="cil-external-link"/>
-                                                                                          </small>
-
-                                                                                      </a>
-
-                                                                                  </CListGroupItem>
-                                                                              </CListGroup>)
-                                                                          })}
-                                                                      </CCardBody>
-                                                                  </CCollapse>
-                                                              </CCard>
-
-                                                              : null}
-                                                         </CListGroupItem>
-                                                     })}
-
-                                                 </CListGroup>
-                                             </CCardBody>
-                                         </CCard>
-                                     </CTabPane>
-                                 </CTabContent>
-                             </CCol>
+                                        <CTabPane active={activeTab === 3}>
+                                            <JenkinsDetails data={selectedRelease.releaseInfoJenkins.jenkinsJobs}/>
+                                        </CTabPane>
+                                    </CTabContent>
+                                </CCol>
                          </CRow>
                          : null}
                     </CCardBody>
